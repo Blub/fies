@@ -509,8 +509,6 @@ zvol_add_obj(FiesWriter *fies,
 	int rc;
 	dnode_t *dn;
 	dmu_buf_t *db = NULL;
-	void *bonus = NULL;
-	size_t bsize = 0;
 
 	if (object == 0) {
 		dn = DMU_META_DNODE(os);
@@ -523,8 +521,6 @@ zvol_add_obj(FiesWriter *fies,
 			        object, rc);
 			return ERR_SKIPMSG;
 		}
-		bonus = db->db_data;
-		bsize = db->db_size;
 		dn = DB_DNODE((dmu_buf_impl_t*)db);
 	}
 
