@@ -1,0 +1,33 @@
+Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: fies
+Upstream-Contact: Wolfgang Bumiller <wry.git@bumiller.com>
+Maintainer: Wolfgang Bumiller <wry.git@bumiller.com>
+Source: http://github.com/Blub/fies
+
+Files: *
+Copyright: 2016-2017, Wolfgang Bumiller <wry.git@bumiller.com>
+License: BSD-3-clause or LGPL-3 or CDDL-1.0
+License: BSD-3-clause (see COPYING-BSD3C)
+License: LGPL-3 (see COPYING-LGPL3)
+License: CDDL-1.0 (see COPYING-CDDL)
+
+Files: lib/*
+Copyright: 2016-2017, Wolfgang Bumiller <wry.git@bumiller.com>
+License: BSD-3-clause or LGPL-3 or CDDL-1.0
+
+Files: src/*
+Copyright: 2016-2017, Wolfgang Bumiller <wry.git@bumiller.com>
+License: BSD-3-clause or GPL-3 or CDDL-1.0
+License: GPL-3 (see COPYING-GPL3)
+
+Files: src/fies-dmthin/*
+Copyright: 2016-2017, Wolfgang Bumiller <wry.git@bumiller.com>
+License: LGPL-3
+
+Files: src/fies-rbd/*
+Copyright: 2016-2017, Wolfgang Bumiller <wry.git@bumiller.com>
+License: LGPL-3
+
+Files: src/fies-zvol/*
+Copyright: 2016-2017, Wolfgang Bumiller <wry.git@bumiller.com>
+License: CDDL-1.0

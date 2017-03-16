@@ -1,0 +1,40 @@
+Source: fies
+Section: misc
+Priority: optional
+Maintainer: Wolfgang Bumiller <wry.git@bumiller.com>
+Build-Depends: libtool, libglib2.0-dev, libdevmapper-dev, librbd-dev, libzfs-dev | libzfslinux-dev, python-docutils | python3-docutils
+
+Package: libfies0
+Architecture: any
+Section: libs
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Library for accessing fies streaming archives
+ libfies is a library for accessing fies streaming archives.
+
+Package: libfies-dev
+Section: libdevel
+Architecture: any
+Depends: libfies0 (= ${binary:Version})
+Description: Development files for libfies
+ libfies is a library for accessing fies streaming archives.
+
+Package: fies
+Architecture: any
+Section: utils
+Depends: ${shlibs:Depends}, ${misc:Depends}, libfies0 (= ${binary:Version})
+Description: Command line tool to handle fiestream archives.
+ fies is a command line tool to create and extract fiestream archives.
+
+Package: fies-rbd
+Architecture: any
+Section: utils
+Depends: ${shlibs:Depends}, ${misc:Depends}, libfies0 (= ${binary:Version})
+Description: Command line tool to to create fiestreams from rbd volumes
+ a command line tool to create and fiestream archives from ceph rbd volumes.
+
+Package: fies-zvol
+Architecture: any
+Section: utils
+Depends: ${shlibs:Depends}, ${misc:Depends}, libfies0 (= ${binary:Version})
+Description: Command line tool to to create fiestreams from zvols
+ a command line tool to create and fiestream archives from ZFS zvols.

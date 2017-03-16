@@ -1,0 +1,40 @@
+\opt -f FILE
+\short use this file instead of stdin/stdout
+    File to read from or write to. By default fies writes to stdout in create
+    mode and reads from stdin in extract or list mode.
+
+\opt -v, --verbose
+\short be more verbose (can be used multiple times)
+    Increase verbosity.
+
+\opt --uid= UID
+\short use this uid instead of the ones from the stream
+    Created files will be owned by the specified user id. Can be ``-1`` to
+    explicitly use the user ids from the stream.
+
+\opt --gid= GID
+\short use this gid instead of the ones from the stream
+    Created files will be owned by the specified group id. Can be ``-1`` to
+    explicitly use the group ids from the stream.
+
+\opt -s, --xform= XFORM
+\short apply file name transformations
+    Transform file names via the supplied sed-like regular expression. See
+    the `REGULAR EXPRESSIONS` section in `fies(1)`.
+
+\opt -c, --config FILE
+\short path to the ceph configuration file
+    This is the path to the ceph configuration file. If no such option is
+    present ceph will use its default settings (usually from
+    ``/etc/ceph/ceph.conf``).
+
+\opt --snapshots
+\short include all snapshots (default)
+    Include all snapshots of images specified. This is the default behavior to
+    conveniently export images with all their snapshots.
+
+\opt --no-snapshots
+\short do not include all snapshots
+    Do not automatically include all snapshots of an image. Instead, only
+    include the ones explicitly specified on the command line. See the
+    `CONTENT ORDERING`_ section for additional notes.

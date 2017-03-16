@@ -1,0 +1,186 @@
+\opt -f FILE
+\short use this file instead of stdin/stdout
+    File to read from or write to. By default fies writes to stdout in create
+    mode and reads from stdin in extract or list mode.
+
+\opt -v, --verbose
+\short be more verbose (can be used multiple times)
+    Increase verbosity.
+
+\opt -q, --quiet
+\short be quiet
+    Suppress most non-critical messages.
+
+\opt -r, --recurse
+\short recursce through directories (default)
+    Recurse into directories.
+
+\opt -R, --no-recurse
+\short do not recurse through directories
+    Do not recurse into directories.
+
+\opt -C, --cd, --directory= DIR
+\short
+    change to DIR before reading/writing files other than the FILE passed to -f
+\long
+    Change into the directory *DIR* after opening the fiestream but before
+    reading/writing files.
+
+\opt --chroot= DIR
+\short
+    chroot into DIR after opening the stream and before changing to the
+    directory passed via -C
+\long
+    chroot into a directory after opening the stream but before changing into
+    a directory passed via ``-C``.
+
+\opt --strip-components= COUNT
+\short
+    Strip COUNT components from paths before applying any further file name
+    transformations.
+\long
+    Strip *COUNT* components from paths before applying any further file name
+    transformations.
+
+\opt -s, --xform= XFORM
+\short apply file name transformations
+    Transform file names via the supplied sed-like regular expression. See
+    the `REGULAR EXPRESSIONS`_ section.
+
+\opt --exclude= GLOB
+\short exclude files matching this pattern
+    Exclude files matching the provided glob pattern. (See ``fnmatch``\ (3) for
+    details.) Can be specified multiple times, files matching any of the
+    patterns will be excluded. Can be combined with ``--rexclude``.
+
+\opt --rexclude= REGEX
+\short exclude files matching this regular expression
+    Exclude files matching the provided extended regular expression. See the
+    `REGULAR EXPRESSIONS`_ section for details.
+
+    The following additional options can be used in the options section:
+
+    * ``r`` apply to regular files
+    * ``d`` apply to directories
+    * ``l`` apply to symbolic links
+    * ``b`` apply to block devices
+    * ``c`` apply to character devices
+
+    Uppercase variants invert the selection. If no such option is specified
+    all files will match. If only negative options are used all the remaining
+    unspecified positive flags are assumed to be active.
+
+\opt --dereference
+\short follow symbolic links
+    Follow symbolic links. This means the archive itself will not contain any
+    symlinks, instead the target file will be archived. If the file does not
+    exist this will be treated as an error.
+
+\opt --no-dereference
+\short do not follow symbolic links
+    Do not follow symlinks, instead archive them as such.
+
+\opt --hard-dereference
+\short do not preserve hardlinks.
+    Do not try to preserve hardlinks. If the same physical file is referenced
+    via multiple paths each file will be included in the archive. Note that it
+    depends on the way file extents are recognized whether or not the file will
+    be archived as a COW-clone.
+
+\opt --no-hard-dereference
+\short try to preserve hardlinks (default)
+    Try to preserve hardlinks.
+
+\opt --one-file-system
+\short don't cross file system boundaries
+    Do not cross file system borders while recursing into directories.
+
+\opt --no-one-file-system
+    Allow crossing file system bordering while recursing into directories.
+
+\opt --incremental
+\short do not zero-initialize files at creation
+    Do not initialize files to zero at creation.
+
+\opt --no-incremental
+\short zero-initialize files at creation (default)
+    This is the default. Files will be initialized to zero at creation.
+
+\opt --clone= WHEN
+\short
+    how to deal with cloned extents (default=auto),
+    can be force, auto or never
+\long
+    Controls how to deal with shared extents. The default value is ``auto``,
+    which will try to use the ``FICLONERANGE`` ``ioctl``
+    (see ``ioctl_ficlonerange``\ (2)) to clone shared extents. If this fails
+    it'll try to copy unaligned portions of the data manually then retry with
+    block aligned ranges, if this still fails it'll copy the rest of the data
+    manually. Alternatives are ``force`` in which case a failed clone attempt
+    will be considered an error, and ``never`` in which case the data will
+    always be duplicated.
+
+\opt --uid= UID
+\short use this uid instead of the ones from the stream
+    Created files will be owned by the specified user id. Can be ``-1`` to
+    explicitly use the user ids from the stream.
+
+\opt --gid= GID
+\short use this gid instead of the ones from the stream
+    Created files will be owned by the specified group id. Can be ``-1`` to
+    explicitly use the group ids from the stream.
+
+\opt --xattrs
+\short include extended attributes
+    Include extended attributes in the archive or try to restore them.
+
+\opt --no-xattrs
+\short ignore extended attributes
+    Ignore extended attributes.
+
+\opt --xattr-exclude= GLOB
+\short exclude xattrs matching this pattern
+    Exclude extended attributes matching the pattern. This pattern will be
+    applied to the full name of the attribute including its namespace.
+
+\opt --xattr-rexclude= REGEX
+\short exclude xattrs matching this regular expression
+    Exclude extended attributes matching the pattern. This pattern will be
+    applied to the full name of the attribute including its namespace.
+
+\opt --xattr-include= GLOB
+\short include xattrs matching this pattern
+    Include extended attributes only if they match this pattern. Can be used
+    multiple times and used in conjunction with `--xattr-rinclude`. If no
+    include pattern is specified it is assumed that all xattrs should be
+    included by default.
+
+\opt --xattr-rinclude= REGEX
+\short include xattrs matching this regular expression
+    Include only the matching extended attributes. See `--xattr-include` for
+    details.
+
+\opt --acls
+    Not implemented.
+
+\opt --no-acls
+    Not implemented.
+
+\opt --wildcards-match-slash
+    Let wildcards in pattern match slashes.
+
+\opt --no-wildcards-match-slash
+    Wildcards in patterns do not match slashes. This is the default.
+
+\opt --warning= WARNING
+\only cli
+\short enable a type of warning
+\opt --warning=no- WARNING
+\only cli
+\short disable a type of warning
+\opt --warning=help
+\only cli
+\short list types of warnings
+\opt --warning=, --warning=no- WARNING
+    Enable or disable a type of warning. Use ``--warning=help`` to list the
+    available warnings.

@@ -1,0 +1,17 @@
+* fill the testsuite
+  * eg. tests for the --xform modifiers
+* FIES_M_REF and --incremental for the fies cli tool
+* --occurrance
+* --relative support (/./ support)
+* --incremental flag, should assume the first snapshot given is already
+  there and simply only write out diffs, "clones" from the fies_file not in
+  the stream should simply not be written to the fiestream, that's all there's
+  to it.
+* fies-rbd --recv for when fies-restore + KRBD is not an option
+* writer: make sure the flags are honored
+* fies-sheepdog
+* compression support in regular fies? (iow. complain about fies-zvol's license)
+* regex /options should work for both --xform and --rexclude
+* doc BUG: the META_END packet is not actually a good place to use link()
+  on O_TMPFILE files if we want the final version of the file be made available
+  "atomically".

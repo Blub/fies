@@ -1,0 +1,59 @@
+============
+fies-restore
+============
+
+------------------------------------------
+restore a snapshot fiestream onto a device
+------------------------------------------
+
+:Author: Wolfgang Bumiller
+:Manual section: 1
+:Manual group: fies Manual
+
+.. TODO: email
+
+SYNOPSIS
+========
+
+``fies-restore`` [\ *OPTIONS*\ ] ``--snapshot=``\ *COMMAND\* *FILE* [\ *NAME*\ ]
+
+DESCRIPTION
+===========
+
+Extracts a fiestream onto a single file. Each file in the stream is assumed to
+be one snapshot of the file and between each file a snapshot command is executed
+to turn the current state into a snapshot. This allows restoring the state of a
+device previously exported via ``fies-rbd``, ``fies-dmthin`` or ``fies-zvol``.
+
+OPTIONS
+=======
+
+.. \OPTIONS rst fies-restore.options
+
+COMMANDS
+========
+
+Commands are not interpreted by a shell currently. They're split. Single and
+double quotes work similarly to how a shell handles them. Additionally the
+following substitutions are made:
+
+* ``%f`` ... The file name as passed to the command line.
+* ``%n`` ... The device name as passed to the command line.
+  or the same as ``%f`` if no name was specified, this is a convenience option.
+* ``%s`` ... In the snapshot command: the snapshot's name.
+* ``%z`` ... In the resize or create commands: the file size.
+
+Note that substitutions happen after any parsing has happened and therefore are
+never broken into multiple parameters by spaces or other special characters.
+
+SEE ALSO
+========
+
+``fies``\ (1)
+
+BUGS
+====
+
+Please report bugs to *FIXME*.
+A known bug is the fact that this manpage currently contains a FIXME instead of
+a link to where to report bugs.

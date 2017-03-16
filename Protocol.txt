@@ -1,0 +1,16 @@
+***TODO***
+
+All numbers are little endian.
+
+* Store list of files and their "ids" (as well as sizes for reference).
+* Store physical extents by file:
+  - An extent works analogously to a `struct fiemap_extent`. The flags are
+    different though.
+  - Extent {
+      file-id,
+      file-offset,
+      physical-offset
+      length
+      flags
+    }
+  - Every physical extent is written only once.

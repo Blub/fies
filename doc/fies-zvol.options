@@ -1,0 +1,62 @@
+\opt -f FILE
+\short use this file instead of stdin/stdout
+    File to read from or write to. By default fies writes to stdout in create
+    mode and reads from stdin in extract or list mode.
+
+\opt -v, --verbose
+\short be more verbose (can be used multiple times)
+    Increase verbosity.
+
+\opt --uid= UID
+\short use this uid instead of the ones from the stream
+    Created files will be owned by the specified user id. Can be ``-1`` to
+    explicitly use the user ids from the stream.
+
+\opt --gid= GID
+\short use this gid instead of the ones from the stream
+    Created files will be owned by the specified group id. Can be ``-1`` to
+    explicitly use the group ids from the stream.
+
+\opt -s, --xform= XFORM
+\short apply file name transformations
+    Transform file names via the supplied sed-like regular expression. See
+    the `REGULAR EXPRESSIONS` section in `fies(1)`.
+
+\opt --snapshots
+\short include all snapshots (default)
+    Include all snapshots of images specified. This is the default behavior to
+    conveniently export images with all their snapshots.
+
+\opt --no-snapshots
+\short do not include all snapshots
+    Do not automatically include all snapshots of an image. Instead, only
+    include the ones explicitly specified on the command line.
+
+\opt --set-ro
+\only cli
+\short
+    temporarily set zvols read-only instead of erroring out on writable volumes
+\opt --no-set-ro
+\only cli
+\short don't temporarily set zvols read only (default)
+\opt --set-ro, --no-set-ro
+\only doc
+\long
+    Since volumes should not change while they're being read by ``fies-zvol`` it
+    is recommended to put them in read-only mode for the duration of the
+    process. This can be automated with this option. After the volume has been
+    read its read-write status will be reverted to its original state.
+
+
+\opt --rw
+\only cli
+\short don't error on writable zvols
+\opt --no-rw
+\only cli
+\short error on writable zvols (default)
+\opt --rw, --no-rw
+\only doc
+\long
+    Since archiving zvols which are being write-accessed is causes the archive
+    to contain potentially corrupt data, ``fies-zvol`` by default errors when
+    trying to archive a writable volume.

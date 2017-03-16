@@ -1,0 +1,49 @@
+=========
+fies-zvol
+=========
+
+----------------------------------------
+read ZFS zvols into a file extent stream
+----------------------------------------
+
+:Author: Wolfgang Bumiller
+:Manual section: 1
+:Manual group: fies Manual
+
+.. TODO: email
+
+SYNOPSIS
+========
+
+``fies-zvol`` [\ *OPTIONS*\ ] *ZVOLS|SNAPSHOTS*\ ...
+
+DESCRIPTION
+===========
+
+Creates a file extent stream from ZFS zvols. This allows archiving or converting
+ZFS zvols and their snapshots. The volumes should not be written to during this
+operation. Snapshots can be specified explicitly or included automatically
+depending on the options specified.
+The stream can later be extracted via the ``fies`` or ``fies-restore``
+commands.
+
+Volumes can be specified in the usual way: An optional pool, the image's name
+followed by an optional snapshot. The first two seprated by a slash, the latter
+two by an ``@`` symbol.
+
+OPTIONS
+=======
+
+.. \OPTIONS rst fies-zvol.options
+
+SEE ALSO
+========
+
+``fies``\ (1), ``fies-restore``\ (1)
+
+BUGS
+====
+
+Please report bugs to *FIXME*.
+A known bug is the fact that this manpage currently contains a FIXME instead of
+a link to where to report bugs.

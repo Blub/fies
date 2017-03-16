@@ -1,0 +1,28 @@
+pkgname=fies
+pkgver=0.0.3.r0.gca26791
+pkgrel=1
+pkgdesc="A tool and library for file extent based archiving"
+arch=('i686' 'x86_64')
+url="none"
+license=("private")
+# fies-dmthin and fies-rbd use glib2
+depends=('glib2')
+makedepends=('libtool' 'device-mapper' 'ceph')
+source=('fies::git+ssh://wry@wry2.qc.to/~wry/Git/fies.git')
+sha1sums=('SKIP')
+
+pkgver() {
+  cd "$pkgname"
+  git describe --long | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
+}
+
+build() {
+  cd "$pkgname"
+  ./configure --prefix=/usr
+  make
+}
+
+package() {
+  cd "$pkgname"
+  make DESTDIR="$pkgdir" install
+}

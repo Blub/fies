@@ -1,0 +1,53 @@
+===========
+fies-dmthin
+===========
+
+---------------------------------------------------------------
+read linux device mapper thin volumes into a file extent stream
+---------------------------------------------------------------
+
+:Author: Wolfgang Bumiller
+:Manual section: 1
+:Manual group: fies Manual
+
+.. TODO: email
+
+SYNOPSIS
+========
+
+``fies-dmthin`` [\ *OPTIONS*\ ] *VOLUMES*\ ...
+
+DESCRIPTION
+===========
+
+Creates a file extent stream from thin volumes. This can be used to archive or
+convert thin volumes and snapshots created with lvm-thin or dmsetup. In order to
+do this access to the thin pool's raw metadata device is required and a metadata
+snapshot will be created. The thin volume should not be written to during this
+operation. It is recommended to put it in read-only mode first.
+The stream can later be extracted via the ``fies`` or ``fies-restore``
+commands.
+
+Volumes are processed in the order given. It is the caller's responsibility to
+pass snapshots in the correct order (oldest to newest) since the device mapper
+metadata does not really provide a defined way of obtaining dependency
+information. Note that the order is only important if the intention is to
+restore it via ``fies-restore``, whereas when unpacking the volumes as files
+onto copy-on-write capable file systems such as btrfs the order does notmatter.
+
+OPTIONS
+=======
+
+.. \OPTIONS rst fies-dmthin.options
+
+SEE ALSO
+========
+
+``fies``\ (1), ``fies-restore``\ (1)
+
+BUGS
+====
+
+Please report bugs to *FIXME*.
+A known bug is the fact that this manpage currently contains a FIXME instead of
+a link to where to report bugs.

@@ -1,0 +1,86 @@
+====
+fies
+====
+
+--------------------------------------
+create and extract file extent streams
+--------------------------------------
+
+:Author: Wolfgang Bumiller
+:Manual section: 1
+:Manual group: fies Manual
+
+.. TODO: email
+
+SYNOPSIS
+========
+
+``fies`` {c|t|x}[v][f\ *FILENAME*\ ] [*ARGS*...]
+
+``fies`` ``-c`` [\ ``-f`` *FIESTREAM*\ ] [\ *OPTIONS*\ ] [\ *FILE*\ ...]
+
+``fies`` ``-x`` [\ ``-f`` *FIESTREAM*\ ] [\ *OPTIONS*\ ] [\ *PATTERN*\ ...]
+
+``fies`` ``-t`` [\ ``-f`` *FIESTREAM*\ ] [\ *OPTIONS*\ ] [\ *PATTERN*\ ...]
+
+DESCRIPTION
+===========
+
+fies is a command line tool to handle *fies* file extent streams, which are
+comparable to streaming archives such as *tar*, with the key difference that
+they refer to file extents rather than their content as raw data and can
+represent various different types of extents as well as leave sections of the
+files untouched for incremental updates. Extents can contain data, reference
+a previous file to clone sections from it, allocate zero-filled space or
+represent unallocated zero-filled sections.
+
+``fies`` tries to restore extents the same way they are found in the
+*fiestream* it is reading, which must be supported by the destination file
+system. Since there are various restrictions on when cloning is possible, it
+may be necessary to create literal copies of some sections. A common
+requirement is block alignment. Whether or not ``fies`` should fall back to
+copying the data if it cannot be cloned can be configured via the ``--clone``
+option.
+
+Since a *fiestream* takes shared data into account it is also possible to
+represent volume data with copy-on-write snapshots, such as QCOW2 image files.
+*fies* provides a generic way to restore the contents of a *fiestream* into
+such a device via the ``fies-restore`` command.
+
+OPTIONS
+=======
+
+.. \OPTIONS rst fies.options
+
+REGULAR EXPRESSIONS
+===================
+A regular expression starts with a delimiter, which can be one of ``/@|!,.:``,
+which is used to separate the regular expression from the options following it.
+In a search-and-replace regex there's additionally a replacement string before
+the option section and an ``s`` before the delimiter which may be optional.
+
+The pattern is a POSIX extended regular expression in which backslashes are
+used to escape delimiter. Anything else will be passed to ``regcomp``\ (3) as
+is. On the replacement side you can use ``\NUMBER`` to reference capture
+groups. Group 0 and ``&`` refer to the entire match. Backslashes can be used
+to escape both of these characters.
+
+The following options can be appended:
+
+* ``i`` to match case insensitively or ``I`` (the default) to match case
+  sensitively
+* ``n`` to disable capture groups or ``N`` (the default) to enable the. Note
+  that you have to escape them on the replacement side regardless of this flag.
+* ``m`` to enable multiline matching or ``M`` (the default) to disable it.
+
+SEE ALSO
+========
+
+``fies-restore``\ (1), ``ioctl_ficlonerange``\ (2)
+
+BUGS
+====
+
+Please report bugs to *FIXME*.
+A known bug is the fact that this manpage currently contains a FIXME instead of
+a link to where to report bugs.

@@ -1,0 +1,48 @@
+\opt -f FILE
+\short use this file instead of stdin/stdout
+    File to read from or write to. By default fies writes to stdout in create
+    mode and reads from stdin in extract or list mode.
+
+\opt -v, --verbose
+\short be more verbose (can be used multiple times)
+    Increase verbosity.
+
+\opt -s, --xform= XFORM
+\short apply file name transformations
+    Transform file names via the supplied sed-like regular expression. See
+    the `REGULAR EXPRESSIONS` section in `fies(1)`.
+
+\opt -C, --create= COMMAND
+\short command used to create the first file
+\long
+    This is useful particularly in case the size isn't already known. When
+    reaching the first file's metadata, the given command is executed in order
+    to create it The size is available via the ``%z`` substitution.
+    Other Valid substitutions are: ``%n`` and ``%f``.
+
+\opt -o, --open= COMMAND
+\short command used before opening the file for writing
+\long
+    If this option is present the output file will be closed before taking a
+    snapshot and reopened afterwards. This command will be executed before
+    reopening it.
+
+\opt -c, --close= COMMAND
+\short command used after closing the file
+\long
+    If this option is present the output file will be closed before taking a
+    snapshot and reopened afterwards. This command will be executed after
+    closing it and before taking the snapshot.
+
+\opt -S, --snapshot= COMMAND
+\short command used to take a snapshot
+\long
+    This option is mandatory. This command will be used to take a snapshot. In
+    addition to the common substitutions, ``%s`` contains the snapshot's name
+    (which is the name of the file in the stream which has just been written).
+
+\opt -R, --resize= COMMAND
+\short command used to resize the file
+\long
+    If the volume contained in the stream changes size this command is executed
+    before reopening it.
