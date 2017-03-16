@@ -19,4 +19,4 @@ config.log
 fies.pc
 doc/*.1
 doc/*.rst
-tests/t[0-9]*
+tests/t[0-9]
