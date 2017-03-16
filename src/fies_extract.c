@@ -126,7 +126,7 @@ do_create(void *opaque,
 	(void)opaque;
 
 	int fd = -1;
-	int retval = 0;
+	int retval;
 	int openmode = O_CREAT | O_EXCL;
 	
 	if (opt_incremental && !(fies_flags & FIES_INCREMENTAL))
@@ -134,6 +134,11 @@ do_create(void *opaque,
 
 	unsigned long filetype = mode & FIES_M_FMT;
 	bool do_truncate = (filetype == FIES_M_FREG);
+
+	if (filetype == FIES_M_FREF) {
+		showerr("fies: created reference file through bad callback\n");
+		return -EINVAL;
+	}
 
 	mode_t perms = 0666;
 	if (!fies_mode_to_stat(mode, &perms)) {
@@ -218,6 +223,63 @@ do_create(void *opaque,
 		close(fd);
 		fd = -1;
 	}
+
+	FileHandle *handle = FileHandle_new(fd, mode, filename);
+	if (!handle) {
+		retval = -errno;
+		showerr("fies: %s\n", strerror(errno));
+		goto err_out;
+	}
+	handle->blocksize = (size_t)stbuf.st_blksize;
+
+	*out_handle = handle;
+	return 0;
+
+err_out:
+	free(filename);
+	if (fd != -1)
+		close(fd);
+	return retval;
+}
+
+static int
+do_reference(void *opaque,
+             const char *in_filename,
+             size_t size,
+             uint32_t mode,
+             void **out_handle)
+{
+	(void)opaque;
+	(void)mode;
+	(void)out_handle;
+	(void)size;
+	int retval;
+
+	char *filename = opt_transform_filename(in_filename);
+	if (!filename)
+		return -errno;
+
+	int fd = open(filename, O_RDONLY);
+	if (fd < 0) {
+		retval = -errno;
+		showerr("fies: open(%s): %s\n", filename, strerror(errno));
+		goto err_out;
+	}
+	struct stat stbuf;
+	if (fstat(fd, &stbuf) != 0) {
+		retval = -errno;
+		showerr("fies: stat(%s): %s\n", filename, strerror(errno));
+		goto err_out;
+	}
+	if (stbuf.st_size != (off_t)size) {
+		warn(WARN_REF_SIZE_MISMATCH, "fies: "
+		     "reference to existing file assumes size %zu, "
+		     "local file has size %zu\n",
+		     size, (size_t)stbuf.st_size);
+	}
+
+	verbose(VERBOSE_FILES, "ref %s\n",
+	        filename);
 
 	FileHandle *handle = FileHandle_new(fd, mode, filename);
 	if (!handle) {
@@ -766,6 +828,7 @@ const struct FiesReader_Funcs
 extract_reader_funcs = {
 	.read       = do_read,
 	.create     = do_create,
+	.reference  = do_reference,
 	.hardlink   = do_hardlink,
 	.mkdir      = do_mkdir,
 	.symlink    = do_symlink,
