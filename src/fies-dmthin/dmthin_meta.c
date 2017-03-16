@@ -314,7 +314,7 @@ ThinMetaTable_addPool(GHashTable *table,
 	return self;
 }
 
-static unsigned int
+static long
 BTree_search(btree_node *self, uint64_t key, bool hi)
 {
 	long a = -1;
@@ -326,7 +326,7 @@ BTree_search(btree_node *self, uint64_t key, bool hi)
 		else if (key > k) a = i;
 		else return (unsigned int)i;
 	}
-	return (unsigned int)(hi ? b : a);
+	return hi ? b : a;
 }
 
 static inline void*
@@ -342,12 +342,12 @@ ThinMeta_btree_search(ThinMeta   *self,
                       uint64_t    key,
                       uint64_t   *value)
 {
-	unsigned int index;
+	long index;
 	while (true) {
 		if (!LoadNode(self, node, block))
 			return false;
 		index = BTree_search(node, key, false);
-		if (index == FIES_LE(node->nr_entries))
+		if (index < 0 || (uint32_t)index == FIES_LE(node->nr_entries))
 			return false;
 		if (!(FIES_LE(node->flags) & INTERNAL_NODE))
 			break;
@@ -387,7 +387,8 @@ ThinMeta_mapTree(ThinMeta        *self,
 	const uint32_t entries = FIES_LE(node->nr_entries);
 	if (flags & INTERNAL_NODE) {
 		// recurse, covering the 'start' point
-		unsigned int from = BTree_search(node, start, false);
+		long lfrom = BTree_search(node, start, false);
+		uint32_t from = lfrom < 0 ? 0 : (uint32_t)lfrom;
 		SHOWTREE(fprintf(stderr, "(search %" PRIu64 " => %u/%u)\n",
 		         start, from, entries));
 		if (from == entries) {
@@ -412,7 +413,8 @@ ThinMeta_mapTree(ThinMeta        *self,
 		}
 		retval = 0;
 	} else if (flags & LEAF_NODE) {
-		unsigned int from = BTree_search(node, start, true);
+		long lfrom = BTree_search(node, start, true);
+		uint32_t from = lfrom < 0 ? 0 : (uint32_t)lfrom;
 		SHOWTREE(fprintf(stderr, "(search %" PRIu64 " => %u/%u)\n",
 		                 start, from, entries));
 		if (from == entries) {
