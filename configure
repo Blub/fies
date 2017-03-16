@@ -168,7 +168,7 @@ RBD_LIBS="${RBD_LIBS:--lrbd}"
 checkrbd() {
   checkprog librados-config LIBRADOS_CONFIG librados-config || return 1
   echo -n 'Checking for librados and librbd...'
-  mustcc "$RADOS_CFLAGS $RBD_CFLAGS" "$RADOS_LIBS $RBD_LIBS" "
+  trycc "$RADOS_CFLAGS $RBD_CFLAGS" "$RADOS_LIBS $RBD_LIBS" "
 #include <stdio.h>
 #include <stdint.h>
 #include <rados/librados.h>
@@ -190,7 +190,8 @@ int main(int argc, char **argv) {
 	return 0;
 }
 " \
-    && echo OK
+    || return 1
+  echo OK
   addvar RADOS_CFLAGS RADOS_LIBS RBD_CFLAGS RBD_LIBS
 }
 ifenabled ENABLE_rbd checkrbd \

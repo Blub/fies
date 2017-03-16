@@ -201,7 +201,3 @@ trycc() {
   rm -f .cfgtest.c .cfgtest.x
   return $trycc_result
 }
-
-mustcc() {
-  trycc "$@" || die "failed"
-}
