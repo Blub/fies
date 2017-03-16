@@ -35,6 +35,19 @@ uninstall:
 .PHONY: clean
 clean:
 	@for i in $(SUBDIRS) $(test_SUBDIRS-y); do $(MAKE) -C $$i clean; done
+	rm -rf build
+	rm -vf *.deb *.changes *.buildinfo
+
+# for convenience in the pve environment:
+.PHONY: deb
+deb: clean
+	mkdir build
+	git ls-files -z | tar --null -T- -cf - | tar -C build -xf -
+	$(MAKE) -C build dpkg
+
+.PHONY: dpkg
+dpkg:
+	dpkg-buildpackage -b -us -uc
 
 .PHONY: distclean
 distclean: clean
