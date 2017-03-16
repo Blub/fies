@@ -305,7 +305,7 @@ FiesReader_newFileCreate(FiesReader *self)
 	return 0;
 notsup:
 	free(filename);
-	return -ENOTSUP;
+	FiesReader_throw(self, ENOTSUP, "failed to create file");
 }
 
 static int
@@ -530,7 +530,7 @@ static fies_ssz
 FiesReader_send(FiesReader *self, void *fd, fies_pos off, fies_sz size)
 {
 	if (!fd)
-		return (fies_ssz)size;
+		return -ENOTSUP;
 	if (!self->funcs->send)
 		FiesReader_throw(self, EFAULT, "tried to use send-callback");
 	fies_ssz put = self->funcs->send(self->opaque, fd, off, size);
@@ -604,7 +604,7 @@ FiesReader_readExtent(FiesReader *self)
 	fies_sz remaining = self->extent.length - self->extent_at;
 	fies_pos offset = self->extent.offset + self->extent_at;
 
-	if (!self->funcs->send) {
+	if (!self->funcs->send || !file->opaque) {
 	 send_not_supported:{}
 		ssize_t got = FiesReader_bufferSome(self, remaining, false);
 		if (got < 0)
