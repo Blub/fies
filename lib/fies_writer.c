@@ -386,7 +386,7 @@ FiesWriter_sendFileHeader(FiesWriter *self,
 		.name_length = FIES_LE(filenamelen),
 		.link_length = FIES_LE(linkdestlen),
 #pragma clang diagnostic pop
-		.hardlink = 0
+		.reserved = 0,
 	};
 
 	const void *extra = linkdest;

@@ -541,7 +541,7 @@ struct fies_file {
 	fies_sz  size;        /*!< \brief File size in bytes. */
 	uint16_t name_length; /*!< \brief File name length. */
 	uint16_t link_length; /*!< \brief Length of symbolic link target. */
-	fies_id  hardlink;    /*!< \brief ID of previous file to hardlink. */
+	uint32_t reserved;
 	char name[0];
 	// After this packet there the name, possibly followed by file-specific
 	// data:
