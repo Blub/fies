@@ -229,6 +229,8 @@ snap_create(void *opaque,
 	if (!filename)
 		return -errno;
 
+	verbose(VERBOSE_FILES, "%s\n", filename);
+
 	if (snap_lastname) {
 		if (!snap_cur_done) {
 			showerr("fies-restore: previous snapshot not done yet, "
@@ -276,6 +278,28 @@ snap_create(void *opaque,
 out:
 	free(filename);
 	return retval;
+}
+
+static int
+snap_reference(void *opaque,
+               const char *in_filename,
+               size_t size,
+               uint32_t mode,
+               void **handle)
+{
+	(void)opaque;
+	(void)size;
+	(void)mode;
+	(void)handle;
+
+	char *filename = opt_apply_xform(in_filename, &opt_xform);
+	if (!filename)
+		return -errno;
+	verbose(VERBOSE_FILES, "%s\n", filename);
+	free(filename);
+
+	// FIXME: should/could verify the size here...
+	return 0;
 }
 
 static int
@@ -470,6 +494,7 @@ static const struct FiesReader_Funcs
 reader_funcs = {
 	.read       = snap_read,
 	.create     = snap_create,
+	.reference  = snap_reference,
 	.mkdir      = snap_mkdir,
 	.symlink    = snap_symlink,
 	.mknod      = snap_mknod,
