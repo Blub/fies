@@ -22,6 +22,10 @@ struct Reader {
 	                            fies_sz     filesize,
 	                            uint32_t    mode,
 	                            void      **out_fh);
+	virtual int      reference (const char *filename,
+	                            fies_sz     filesize,
+	                            uint32_t    mode,
+	                            void      **out_fh);
 	virtual int      mkdir     (const char *dirname,
 	                            uint32_t    mode,
 	                            void      **out_fh);

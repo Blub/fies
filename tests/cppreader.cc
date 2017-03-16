@@ -21,6 +21,17 @@ vf_create(void       *opaque,
 }
 
 static int
+vf_reference(void       *opaque,
+             const char *filename,
+             fies_sz     filesize,
+             uint32_t    mode,
+             void      **out_fh)
+{
+	auto self = reinter<Reader*>(opaque);
+	return self->reference(filename, filesize, mode, out_fh);
+}
+
+static int
 vf_mkdir(void       *opaque,
          const char *dirname,
          uint32_t    mode,
@@ -155,6 +166,7 @@ const FiesReader_Funcs
 cppreader_funcs = {
 	vf_read,
 	vf_create,
+	vf_reference,
 	vf_mkdir,
 	vf_symlink,
 	vf_hardlink,
@@ -221,6 +233,15 @@ Reader::create(const char *filename,
                fies_sz     filesize,
                uint32_t    mode,
                void      **out_fh)
+{
+	return -ENOTSUP;
+}
+
+int
+Reader::reference(const char *filename,
+                  fies_sz     filesize,
+                  uint32_t    mode,
+                  void      **out_fh)
 {
 	return -ENOTSUP;
 }
