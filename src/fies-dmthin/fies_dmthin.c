@@ -522,6 +522,7 @@ main(int argc, char **argv)
 {
 	int err = 0;
 	const char *errstr = NULL;
+	const char *errnostr = NULL;
 
 	Vector_init_type(&opt_xform, RexReplace*);
 	Vector_set_destructor(&opt_xform, (Vector_dtor*)RexReplace_pdestroy);
@@ -580,11 +581,15 @@ main(int argc, char **argv)
 
 out_errno:
 	err = errno;
+	errnostr = strerror(err);
 out_err:
 	errstr = FiesWriter_getError(fies);
-	if (!errstr)
-		errstr = strerror(err);
-	fprintf(stderr, "fies-dmthin: %s\n", errstr);
+	if (errstr)
+		fprintf(stderr, "fies-dmthin: %s", errstr);
+	if (errnostr)
+		fprintf(stderr, ": %s\n", errnostr);
+	else
+		fprintf(stderr, "\n");
 out:
 	ThinMetaTable_delete(dmthin_metadevs);
 	FiesWriter_delete(fies);
