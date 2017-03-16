@@ -860,6 +860,9 @@ ListFileHandle_show(const ListFileHandle *fh)
 	case FIES_M_FIFO:  lsline[0] = 'p'; break;
 	case FIES_M_FBLK:  lsline[0] = 'b'; device = true; break;
 	case FIES_M_FCHR:  lsline[0] = 'c'; device = true; break;
+	case FIES_M_FREF:
+		memcpy(lsline, "ref       ", sizeof(lsline)-1);
+		break;
 	default:
 		lsline[0] = '?';
 		break;
@@ -912,6 +915,8 @@ list_create(void *opaque,
 {
 	(void)opaque;
 	*handle = ListFileHandle_new(filename, mode, size);
+	if (*handle && (mode & FIES_M_FMT) == FIES_M_FREF)
+		ListFileHandle_show(*handle);
 	return *handle ? 0 : -errno;
 }
 
@@ -1053,6 +1058,7 @@ const struct FiesReader_Funcs
 list_reader_funcs = {
 	.read       = do_read,
 	.create     = list_create,
+	.reference  = list_create,
 	.hardlink   = list_hardlink,
 	.mkdir      = list_mkdir,
 	.symlink    = list_symlink,
