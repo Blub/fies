@@ -502,7 +502,7 @@ main(int argc, char **argv)
 
 	while (true) {
 		int index = 0;
-		int c = getopt_long(argc, argv, "hvf:s:", longopts, &index);
+		int c = getopt_long(argc, argv, "hvf:s:C:o:c:S:R:", longopts, &index);
 		if (c == -1)
 			break;
 		handle_option(c, optopt, optarg);
