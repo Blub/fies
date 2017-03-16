@@ -15,7 +15,7 @@ restore a snapshot fiestream onto a device
 SYNOPSIS
 ========
 
-``fies-restore`` [\ *OPTIONS*\ ] ``--snapshot=``\ *COMMAND\* *FILE* [\ *NAME*\ ]
+``fies-restore`` [\ *OPTIONS*\ ] ``--snapshot=``\ *COMMAND* *FILE* [\ *NAME*\ ]
 
 DESCRIPTION
 ===========
