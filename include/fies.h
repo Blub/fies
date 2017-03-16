@@ -266,6 +266,10 @@ int                FiesWriter_writefd    (struct FiesWriter *self,
 int                FiesWriter_writeFile  (struct FiesWriter *self,
                                           struct FiesFile *handle);
 
+/*! \brief Add a file as reference for COW or incremental updates. */
+int                FiesWriter_readRefFile(struct FiesWriter *self,
+                                          struct FiesFile *handle);
+
 /*! \brief Set an error message, usable by callbacks for convenience. */
 int                FiesWriter_setError   (struct FiesWriter *self,
                                           int errc,
@@ -498,6 +502,7 @@ struct fies_packet {
 };
 
 #define FIES_M_FMT       0770000
+#define FIES_M_FREF      0400000
 #define FIES_M_FHARD     0200000
 #define FIES_M_FSOCK     0140000
 #define FIES_M_FLNK      0120000

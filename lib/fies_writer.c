@@ -374,12 +374,13 @@ static int
 FiesWriter_sendFileHeader(FiesWriter *self,
                           FiesFile *fh,
                           fies_id fileid,
+                          uint32_t mode,
                           const char *filename, size_t filenamelen,
                           const char *linkdest, size_t linkdestlen)
 {
 	struct fies_file file = {
 		.id = FIES_LE(fileid),
-		.mode = FIES_LE(fh->mode),
+		.mode = FIES_LE(mode),
 		.size = FIES_LE((fies_pos)fh->filesize),
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wconversion"
@@ -550,7 +551,7 @@ FiesWriter_sendFileMeta(FiesWriter *self,
                         const char *filename, size_t filenamelen,
                         const char *linkdest, size_t linkdestlen)
 {
-	int rc = FiesWriter_sendFileHeader(self, file, fileid,
+	int rc = FiesWriter_sendFileHeader(self, file, fileid, file->mode,
 	                                   filename, filenamelen,
 	                                   linkdest, linkdestlen);
 	if (rc < 0)
@@ -592,6 +593,7 @@ typedef struct {
 	FiesFile *file;
 	fies_id fileid;
 	const FiesFile_Extent *ex;
+	bool ref_file;
 } FiesWriter_sendExtent_capture;
 #pragma clang diagnostic pop
 
@@ -599,6 +601,9 @@ static int
 FiesWriter_sendExtent_forNew(void *opaque, fies_pos pos, fies_sz len)
 {
 	FiesWriter_sendExtent_capture *cap = opaque;
+	if (cap->ref_file)
+		return 0;
+
 	const uint32_t in_flags = cap->ex->flags;
 	uint32_t extype = in_flags & FIES_FL_EXTYPE_MASK;
 	bool hasdata = false;
@@ -669,6 +674,9 @@ FiesWriter_sendExtent_forAvail(void *opaque, fies_pos pos, fies_sz len,
                                fies_id src_file, fies_pos src_pos)
 {
 	FiesWriter_sendExtent_capture *cap = opaque;
+	if (cap->ref_file)
+		return 0;
+
 	struct fies_extent fex = { cap->fileid, FIES_FL_COPY, pos, len };
 	struct fies_source src = { src_file, src_pos };
 	swap_fies_extent_le(&fex);
@@ -704,13 +712,14 @@ FiesWriter_sendExtent(FiesWriter *self,
                       fies_id fileid,
                       FiesFile_Extent *ex,
                       size_t filesize,
-                      FiesDevice *device)
+                      FiesDevice *device,
+                      bool ref_file)
 {
 	if (ex->logical + ex->length > filesize)
 		ex->length = filesize - ex->logical;
 
 	FiesWriter_sendExtent_capture cap = {
-		self, file, fileid, ex
+		self, file, fileid, ex, ref_file
 	};
 
 	if (!(ex->flags & FIES_FL_SHARED)) {
@@ -810,8 +819,8 @@ merge_extents(FiesFile_Extent *ex, size_t pi, size_t count)
 	return i;
 }
 
-extern int
-FiesWriter_writeFile(FiesWriter *self, FiesFile *file)
+static int
+FiesWriter_writeFileDo(FiesWriter *self, FiesFile *file, bool ref_file)
 {
 	if (!file->funcs)
 		return FiesWriter_setError(self, EINVAL,
@@ -820,12 +829,29 @@ FiesWriter_writeFile(FiesWriter *self, FiesFile *file)
 		return FiesWriter_setError(self, ENOSYS,
 		                           "no write callback available");
 
+	if (ref_file && file->linkdest)
+		return FiesWriter_setError(self, EINVAL,
+			"symbolic link cannot be a ref file");
+
 	FiesDevice *device = PMap_get(&self->devices, &file->device);
 	if (!device) {
 		// Should not be possible
 		return FiesWriter_setError(self, EFAULT,
 		       "file is not properly associated with a device");
 	}
+
+	unsigned long filetype = file->mode & FIES_M_FMT;
+	if (!filetype)
+		return FiesWriter_setError(self, EINVAL, "invalid file type");
+	if (ref_file && !FIES_M_HAS_EXTENTS(filetype))
+		return FiesWriter_setError(self, EINVAL,
+			"only files with extents can be reference files");
+	if (file->linkdest && filetype != FIES_M_FLNK)
+		return FiesWriter_setError(self, ELOOP,
+		                           "non-link must not have a link");
+	else if (!file->linkdest && filetype == FIES_M_FLNK)
+		return FiesWriter_setError(self, ELOOP,
+		                           "missing symbolic link target");
 
 	size_t filenamelen = strlen(file->filename);
 	if (filenamelen > 0xFFFF)
@@ -836,18 +862,9 @@ FiesWriter_writeFile(FiesWriter *self, FiesFile *file)
 		return FiesWriter_setError(self, ENAMETOOLONG,
 		                           "symlink destination too long");
 
-	unsigned long filetype = file->mode & FIES_M_FMT;
-	if (!filetype)
-		return FiesWriter_setError(self, EINVAL, "invalid file type");
-	if (file->linkdest && filetype != FIES_M_FLNK)
-		return FiesWriter_setError(self, ELOOP,
-		                           "non-link must not have a link");
-	else if (!file->linkdest && filetype == FIES_M_FLNK)
-		return FiesWriter_setError(self, ELOOP,
-		                           "missing symbolic link target");
-
 	if (filetype == FIES_M_FHARD) {
 		return FiesWriter_sendFileHeader(self, file, file->fileid,
+		                                 file->mode,
 		                                 file->filename, filenamelen,
 		                                 NULL, 0);
 	}
@@ -856,9 +873,16 @@ FiesWriter_writeFile(FiesWriter *self, FiesFile *file)
 
 	fies_id fileid = FiesWriter_registerFile(self, file);
 
-	retval = FiesWriter_sendFileMeta(self, file, fileid,
-	                                 file->filename, filenamelen,
-	                                 file->linkdest, linkdestlen);
+	if (ref_file) {
+		retval = FiesWriter_sendFileHeader(self, file, file->fileid,
+		                                   FIES_M_FREF,
+		                                   file->filename, filenamelen,
+		                                   NULL, 0);
+	} else {
+		retval = FiesWriter_sendFileMeta(self, file, fileid,
+		                                 file->filename, filenamelen,
+		                                 file->linkdest, linkdestlen);
+	}
 	if (retval < 0)
 		return retval;
 
@@ -889,7 +913,9 @@ FiesWriter_writeFile(FiesWriter *self, FiesFile *file)
 		for (size_t i = 0; i != (size_t)count; ++i) {
 			FiesFile_Extent *ex = &exbuf[i];
 			i = merge_extents(exbuf, i, (size_t)count);
-			if (ex->logical > at) {
+			if (ref_file)
+				at = ex->logical;
+			else if (ex->logical > at) {
 				fies_pos len = ex->logical - at;
 				fies_ssz rc = FiesWriter_sendHole(self, fileid,
 				                                  at, len,
@@ -902,7 +928,7 @@ FiesWriter_writeFile(FiesWriter *self, FiesFile *file)
 			}
 			fies_ssz rc = FiesWriter_sendExtent(self, file, fileid,
 			                                    ex, filesize,
-			                                    device);
+			                                    device, ref_file);
 			if (rc < 0) {
 				retval = (int)rc;
 				break;
@@ -918,7 +944,7 @@ FiesWriter_writeFile(FiesWriter *self, FiesFile *file)
 			break;
 		}
 	}
-	if (at < filesize) {
+	if (!ref_file && at < filesize) {
 		fies_ssz rc = FiesWriter_sendHole(self, fileid, at,
 		                                  filesize-at, filesize);
 		if (rc < 0)
@@ -930,6 +956,18 @@ FiesWriter_writeFile(FiesWriter *self, FiesFile *file)
 /*out:*/
 	free(exbuf);
 	return retval;
+}
+
+extern int
+FiesWriter_writeFile(FiesWriter *self, FiesFile *file)
+{
+	return FiesWriter_writeFileDo(self, file, false);
+}
+
+extern int
+FiesWriter_readRefFile(FiesWriter *self, FiesFile *file)
+{
+	return FiesWriter_writeFileDo(self, file, true);
 }
 
 extern const char*
