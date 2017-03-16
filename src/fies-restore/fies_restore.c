@@ -555,7 +555,7 @@ main(int argc, char **argv)
 		return 1;
 	}
 
-	int stream_fd = STDOUT_FILENO;
+	int stream_fd = STDIN_FILENO;
 	if (opt_file && strcmp(opt_file, "-")) {
 		stream_fd = open(opt_file, O_RDONLY);
 		if (stream_fd < 0) {
