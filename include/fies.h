@@ -76,6 +76,14 @@ struct FiesReader_Funcs {
 	                       uint32_t    mode,
 	                       void      **out_fh);
 
+	/*! \brief Called to add a reference handle for incremental updates,
+	 * should fill the out_fh pointer. */
+	int      (*reference) (void       *opaque,
+	                       const char *filename,
+	                       fies_sz     filesize,
+	                       uint32_t    mode,
+	                       void      **out_fh);
+
 	/*! \brief Called to create a directory, may fill the out_fh pointer.
 	 */
 	int      (*mkdir)     (void       *opaque,

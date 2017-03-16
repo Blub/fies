@@ -219,6 +219,7 @@ FiesReader_newFileCreate(FiesReader *self)
 	case FIES_M_FREG:
 	case FIES_M_FHARD:
 	case FIES_M_FDIR:
+	case FIES_M_FREF:
 		extralen = 0;
 		break;
 	default:
@@ -236,7 +237,15 @@ FiesReader_newFileCreate(FiesReader *self)
 	char *filename = strndup(file->name, namelen);
 	char *linkdest = NULL;
 	bool add_handle = true;
+	bool expect_meta = true;
 	switch (filetype) {
+	case FIES_M_FREF:
+		expect_meta = false;
+		if (!self->funcs->reference)
+			goto notsup;
+		rc = self->funcs->reference(self->opaque, filename,
+		                            filesize, mode, &handle);
+		break;
 	case FIES_M_FREG:
 		if (!self->funcs->create)
 			goto notsup;
@@ -296,7 +305,8 @@ FiesReader_newFileCreate(FiesReader *self)
 		}
 
 		Map_insert(&self->files, &entry->id, &entry);
-		self->newfile = entry;
+		if (expect_meta)
+			self->newfile = entry;
 	} else {
 		self->newfile = NULL;
 	}
