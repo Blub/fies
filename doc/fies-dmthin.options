@@ -21,3 +21,13 @@
 \short apply file name transformations
     Transform file names via the supplied sed-like regular expression. See
     the `REGULAR EXPRESSIONS` section in `fies(1)`.
+
+\opt --incremental
+\short create an incremental stream
+    Do not include the first volume's data. Instead, consider it to be a
+    reference of data considered already available.
+
+\opt --no-incremental
+\short do not create an incremental stream
+    This is the default. All volumes will be included normally.
+

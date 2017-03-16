@@ -35,6 +35,8 @@ information. Note that the order is only important if the intention is to
 restore it via ``fies-restore``, whereas when unpacking the volumes as files
 onto copy-on-write capable file systems such as btrfs the order does notmatter.
 
+In incremental mode the first volume will be considered to be the reference.
+
 OPTIONS
 =======
 

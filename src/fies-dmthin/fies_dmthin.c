@@ -19,10 +19,11 @@
 #include "../regex.h"
 #include "fies_dmthin.h"
 
-static const char           *opt_file    = NULL;
-static long                  opt_uid     = -1;
-static long                  opt_gid     = -1;
+static const char           *opt_file        = NULL;
+static long                  opt_uid         = -1;
+static long                  opt_gid         = -1;
 static VectorOf(RexReplace*) opt_xform;
+static bool                  opt_incremental = false;
 
 static bool option_error = false;
 
@@ -41,6 +42,8 @@ usage(FILE *out, int exit_code)
 
 #define OPT_UID              (0x1100+'u')
 #define OPT_GID              (0x1000+'g')
+#define OPT_INCREMENTAL        (0x1100+'i')
+#define OPT_NO_INCREMENTAL     (0x1000+'i')
 
 static struct option longopts[] = {
 	{ "help",                    no_argument, NULL, 'h' },
@@ -50,6 +53,9 @@ static struct option longopts[] = {
 	{ "gid",               required_argument, NULL, OPT_GID },
 	{ "transform",         required_argument, NULL, 's' },
 	{ "xform",             required_argument, NULL, 's' },
+	{ "incremental",             no_argument, NULL, OPT_INCREMENTAL },
+	{ "noincremental",           no_argument, NULL, OPT_NO_INCREMENTAL },
+	{ "no-incremental",          no_argument, NULL, OPT_NO_INCREMENTAL },
 	{ NULL, 0, NULL, 0 }
 };
 
@@ -80,6 +86,8 @@ handle_option(int c, int oopt, const char *oarg)
 		if (!arg_stol(oarg, &opt_gid, "--gid", "fies-dmthin"))
 			option_error = true;
 		break;
+	case OPT_INCREMENTAL:    opt_incremental = true; break;
+	case OPT_NO_INCREMENTAL: opt_incremental = false; break;
 	case '?':
 		fprintf(stderr, "fies-dmthin: unrecognized option: %c\n",
 		        oopt);
@@ -570,7 +578,12 @@ main(int argc, char **argv)
 		if (!file)
 			goto out_errno;
 		verbose(VERBOSE_FILES, "%s\n", arg);
-		err = -FiesWriter_writeFile(fies, file);
+		if (opt_incremental) {
+			opt_incremental = false;
+			err = -FiesWriter_readRefFile(fies, file);
+		} else{
+			err = -FiesWriter_writeFile(fies, file);
+		}
 		FiesFile_close(file);
 		if (err > 0)
 			goto out_err;
