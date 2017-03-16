@@ -11,7 +11,7 @@ CPPFLAGS += -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
 CFLAGS += -std=c11
 CXXFLAGS += -std=c++14
 
-CPPFLAGS += -Wall -Werror -Wno-unknown-pragmas
+CPPFLAGS += -Wall -Werror -Wno-unknown-pragmas -Wno-pragmas
 
 ifeq ($(USING_CLANG), 1)
 # strdup falls under -Wdisabled-macro-expansion due to its recursive definition
