@@ -158,7 +158,7 @@ checkfor() {
     die "Internal error (neither prog nor pkgname defined)"
   fi
   if [ "x$pkg" != "x" ]; then
-    if pkg-config --modversion "$pkg" >/dev/null ; then
+    if pkg-config --modversion "$pkg" >/dev/null 2>&1 ; then
       setvars "$pre" \
         "$(pkg-config --cflags "$pkg")" \
         "$(pkg-config --libs "$pkg")"
