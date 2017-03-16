@@ -20,6 +20,10 @@
 #include "../lib/fies.h"
 #include "../lib/map.h"
 
+#ifdef FIES_MAJOR_MACRO_HEADER
+# include FIES_MAJOR_MACRO_HEADER
+#endif
+
 #include "cli_common.h"
 #include "util.h"
 #include "regex.h"

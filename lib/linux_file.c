@@ -15,15 +15,13 @@
 
 #include "../config.h"
 
-#if defined(MAJOR_IN_MKDEV)
-# include <sys/mkdev.h>
-#elif defined(MAJOR_IN_SYSMACROS)
-# include <sys/sysmacros.h>
-#endif
-
 #include "fies.h"
 #include "fies_writer.h"
 #include "fies_linux.h"
+
+#ifdef FIES_MAJOR_MACRO_HEADER
+# include FIES_MAJOR_MACRO_HEADER
+#endif
 
 #ifndef S_ISVTX
 # define S_ISVTX 01000

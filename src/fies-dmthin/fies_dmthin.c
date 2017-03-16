@@ -14,6 +14,11 @@
 
 #include "../../lib/fies.h"
 #include "../../lib/vector.h"
+
+#ifdef FIES_MAJOR_MACRO_HEADER
+# include FIES_MAJOR_MACRO_HEADER
+#endif
+
 #include "../cli_common.h"
 #include "../util.h"
 #include "../regex.h"
