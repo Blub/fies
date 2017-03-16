@@ -28,7 +28,7 @@ FileMatch_matches(FileMatch *self, const char *path, mode_t st_mode)
 
 	int type = self->flags & FMATCH_MODE_MASK;
 
-	if (self->flags &&
+	if (type &&
 	    (fileflags == type) != !(self->flags & FMATCH_NEGATIVE))
 	{
 		return 0;
