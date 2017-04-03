@@ -5,6 +5,7 @@
 #pragma clang diagnostic ignored "-Wpadded"
 #pragma clang diagnostic ignored "-Wunused-parameter"
 #pragma clang diagnostic ignored "-Wmacro-redefined"
+#pragma clang diagnostic ignored "-Wreserved-id-macro"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -513,7 +514,10 @@ zvol_add_obj(FiesWriter *fies,
 	if (object == 0) {
 		dn = DMU_META_DNODE(os);
 	} else {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-qual"
 		rc = dmu_bonus_hold(os, object, FTAG, &db);
+#pragma clang diagnostic pop
 		if (rc) {
 			fprintf(stderr,
 			        "fies-zvol: dmu_bonus_hold(%" PRIu64
@@ -533,7 +537,10 @@ zvol_add_obj(FiesWriter *fies,
 		rc = ENOENT; // positivie as this is not an actual error yet
 
 	if (db)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-qual"
 		dmu_buf_rele(db, FTAG);
+#pragma clang diagnostic pop
 	return rc;
 }
 
@@ -541,9 +548,12 @@ static int
 do_zvol_add(FiesWriter *fies, const char *pool, const char *volname, objset_t *os)
 {
 	dmu_objset_stats_t dds;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-qual"
 	dsl_pool_config_enter(dmu_objset_pool(os), FTAG);
 	dmu_objset_fast_stat(os, &dds);
 	dsl_pool_config_exit(dmu_objset_pool(os), FTAG);
+#pragma clang diagnostic pop
 
 	if (dds.dds_type != DMU_OST_ZVOL) {
 		fprintf(stderr, "fies-zvol: not a zvol: %s/%s (%u)\n",
@@ -698,7 +708,10 @@ zvol_add(char *volume, zfs_handle_t *zh, FiesWriter *fies)
 	}
 
 	objset_t *os = NULL;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-qual"
 	int rc = dmu_objset_own(volume, DMU_OST_ANY, B_TRUE, FTAG, &os);
+#pragma clang diagnostic pop
 	if (rc) {
 		fprintf(stderr, "fies-zvol: failed to open %s: %s\n",
 		        volume, strerror(rc));
@@ -706,7 +719,10 @@ zvol_add(char *volume, zfs_handle_t *zh, FiesWriter *fies)
 	}
 	*poolsep = 0;
 	retval = do_zvol_add(fies, volume, poolsep+1, os);
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-qual"
 	dmu_objset_disown(os, FTAG);
+#pragma clang diagnostic pop
 	*poolsep = '/'; // Needed for set_zvol_ro below
 
 out_restore:
