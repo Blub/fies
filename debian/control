@@ -2,7 +2,13 @@ Source: fies
 Section: misc
 Priority: optional
 Maintainer: Wolfgang Bumiller <wry.git@bumiller.com>
-Build-Depends: libtool, libglib2.0-dev, libdevmapper-dev, librbd-dev, libzfs-dev | libzfslinux-dev, python-docutils | python3-docutils
+Build-Depends: libtool,
+ libtool-bin,
+ libglib2.0-dev,
+ libdevmapper-dev,
+ librbd-dev,
+ libzfs-dev | libzfslinux-dev,
+ python-docutils | python3-docutils
 
 Package: libfies0
 Architecture: any
