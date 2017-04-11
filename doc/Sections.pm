@@ -8,6 +8,7 @@ use Text::Wrap ();
 sub wrap {
 	local $Text::Wrap::huge = 'wrap';
 	local $Text::Wrap::columns = shift;
+	local $Text::Wrap::unexpand = 0;
 	return Text::Wrap::wrap(@_);
 }
 
