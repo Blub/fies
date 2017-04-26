@@ -8,6 +8,15 @@ various storages into fiestreams and restore them elsewhere.
 For licensing information see the COPYING file.
 For information on how to contribute see the CONTRIBUTING file.
 
+TODO
+----
+
+There's a TODO file, but the main goals before a first release are:
+* Document the streaming format / protocol properly and get some feedback.
+* Generally write some more / improve the documentation.
+* Add another mode to fies-dmthin where the metadata is read fully first to
+  free up the reserved metadata snapshot early.
+
 Tools
 -----
 

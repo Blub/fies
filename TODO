@@ -9,6 +9,3 @@
 * fies-sheepdog
 * compression support in regular fies? (iow. complain about fies-zvol's license)
 * regex /options should work for both --xform and --rexclude
-* doc BUG: the META_END packet is not actually a good place to use link()
-  on O_TMPFILE files if we want the final version of the file be made available
-  "atomically".

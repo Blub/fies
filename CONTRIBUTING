@@ -9,9 +9,8 @@ Contributions should be in the form pull requests on github.
 Licensing
 ---------
 
-By submitting contributions to this project you agree that each hunk of the
-patch you are contributing uses the licensing specified in the COPYING file for
-the file corresponding file the change is applied to. This file specifies
+By submitting contributions to this project you agree to the licensing specified
+in the COPYING file for each file you are contributing to. This file specifies
 multiple licenses based on various paths of the source code. Read it.
 
 Developer Certificate of Origin (Signed-off-by lines)
