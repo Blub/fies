@@ -14,6 +14,7 @@ TODO
 There's a TODO file, but the main goals before a first release are:
 * Document the streaming format / protocol properly and get some feedback.
 * Generally write some more / improve the documentation.
+* Add examples for all the tools right here (and to the man pages).
 * Add another mode to fies-dmthin where the metadata is read fully first to
   free up the reserved metadata snapshot early.
 
