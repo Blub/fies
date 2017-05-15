@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+#include "../lib/vector.h"
+
 #define EUSAGE -1
 
 typedef struct FiesReader FiesReader;
@@ -21,6 +23,8 @@ typedef struct {
 } Common;
 
 extern Common common;
+
+bool handle_file_re_opt(const char *pattern, Vector *dest, const char *prog);
 
 enum {
 # define FIES_ADD(X) WARN_##X,

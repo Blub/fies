@@ -52,3 +52,26 @@
 \long
     Causes the last file is considered to be the "current state" rather than a
     final snapshot. (Default is to create a snapshot).
+
+\opt --exclude= GLOB
+\short exclude names matching this pattern
+    Do not create snapshots for files files matching the provided glob pattern.
+    (See ``fnmatch``\ (3) for details.) Can be specified multiple times, names
+    matching any of the patterns will be excluded. Can be combined with
+    ``--rexclude``.
+    Note that for data integrity, the data of these files is still written.
+    Merely the creation of snapshots is prevented.
+
+\opt --rexclude= REGEX
+\short exclude names matching this regular expression
+    Do not create snapshots for files matching the provided extended regular
+    expression. See the `REGULAR EXPRESSIONS`_ section for details.
+
+\opt --include= GLOB
+\short include names matching this pattern
+    This is the counterpart to ``--exclude``. Snapshots are only created if they
+    match at least one include pattern, or if no include patterns are specified.
+
+\opt --rinclude= REGEX
+\short include names matching this regular expression
+    This is the regex counterpart to ``--include``.

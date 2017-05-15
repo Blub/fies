@@ -19,17 +19,21 @@
 #include "../cli_common.h"
 #include "../util.h"
 #include "../regex.h"
+#include "../filematch.h"
 
 static const char           *opt_file    = NULL;
 static VectorOf(RexReplace*) opt_xform;
-static char  **opt_cmd_open       = NULL;
-static char  **opt_cmd_snapshot   = NULL;
-static char  **opt_cmd_close      = NULL;
-static char  **opt_cmd_resize     = NULL;
-static char  **opt_cmd_create     = NULL;
-static char   *opt_devname        = NULL;
-static char   *opt_filename       = NULL;
-static bool    opt_final_snapshot = true;
+static VectorOf(FileMatch)   opt_exclude;
+static VectorOf(FileMatch)   opt_include;
+static char  **opt_cmd_open        = NULL;
+static char  **opt_cmd_snapshot    = NULL;
+static char  **opt_cmd_close       = NULL;
+static char  **opt_cmd_resize      = NULL;
+static char  **opt_cmd_create      = NULL;
+static char   *opt_devname         = NULL;
+static char   *opt_filename        = NULL;
+static bool    opt_final_snapshot  = true;
+static bool    opt_wildcards_slash = false;
 
 static bool option_error = false;
 
@@ -46,25 +50,38 @@ usage(FILE *out, int exit_code)
 	exit(exit_code);
 }
 
-#define OPT_FINAL_SNAPSHOT     (0x1100+'s')
-#define OPT_NO_FINAL_SNAPSHOT  (0x1000+'s')
+#define OPT_FINAL_SNAP         (0x1100+'s')
+#define OPT_NO_FINAL_SNAP      (0x1000+'s')
+#define OPT_EXCLUDE            (0x2000+'x')
+#define OPT_INCLUDE            (0x2000+'i')
+#define OPT_REXCLUDE           (0x2100+'x')
+#define OPT_RINCLUDE           (0x2100+'i')
+#define OPT_WILD_SLASH         (0x1200+'w')
+#define OPT_NO_WILD_SLASH      (0x2200+'w')
 
 static struct option longopts[] = {
-	{ "help",                    no_argument, NULL, 'h' },
-	{ "file",              required_argument, NULL, 'f' },
-	{ "verbose",                 no_argument, NULL, 'v' },
-	{ "transform",         required_argument, NULL, 's' },
-	{ "xform",             required_argument, NULL, 's' },
+	{ "help",                     no_argument, NULL, 'h' },
+	{ "file",               required_argument, NULL, 'f' },
+	{ "verbose",                  no_argument, NULL, 'v' },
+	{ "transform",          required_argument, NULL, 's' },
+	{ "xform",              required_argument, NULL, 's' },
 
-	{ "create",            required_argument, NULL, 'C' },
-	{ "open",              required_argument, NULL, 'o' },
-	{ "close",             required_argument, NULL, 'c' },
-	{ "snapshot",          required_argument, NULL, 'S' },
-	{ "resize",            required_argument, NULL, 'R' },
+	{ "create",             required_argument, NULL, 'C' },
+	{ "open",               required_argument, NULL, 'o' },
+	{ "close",              required_argument, NULL, 'c' },
+	{ "snapshot",           required_argument, NULL, 'S' },
+	{ "resize",             required_argument, NULL, 'R' },
 
-	{ "final-snapshot",          no_argument, NULL, OPT_FINAL_SNAPSHOT },
-	{ "nofinal-snapshot",        no_argument, NULL, OPT_NO_FINAL_SNAPSHOT },
-	{ "no-final-snapshot",       no_argument, NULL, OPT_NO_FINAL_SNAPSHOT },
+	{ "final-snapshot",           no_argument, NULL, OPT_FINAL_SNAP },
+	{ "nofinal-snapshot",         no_argument, NULL, OPT_NO_FINAL_SNAP },
+	{ "no-final-snapshot",        no_argument, NULL, OPT_NO_FINAL_SNAP },
+
+	{ "exclude",            required_argument, NULL, OPT_EXCLUDE },
+	{ "rexclude",           required_argument, NULL, OPT_REXCLUDE },
+	{ "include",            required_argument, NULL, OPT_INCLUDE },
+	{ "rinclude",           required_argument, NULL, OPT_RINCLUDE },
+	{ "wildcards-match-slash",    no_argument, NULL, OPT_WILD_SLASH },
+	{ "no-wildcards-match-slash", no_argument, NULL, OPT_NO_WILD_SLASH},
 
 	{ NULL, 0, NULL, 0 }
 };
@@ -105,8 +122,36 @@ handle_option(int c, int oopt, const char *oarg)
 	case 'S': command_opt(&opt_cmd_snapshot, oarg); break;
 	case 'R': command_opt(&opt_cmd_resize,   oarg); break;
 
-	case OPT_FINAL_SNAPSHOT:    opt_final_snapshot = true; break;
-	case OPT_NO_FINAL_SNAPSHOT: opt_final_snapshot = false; break;
+	case OPT_FINAL_SNAP:     opt_final_snapshot = true; break;
+	case OPT_NO_FINAL_SNAP:  opt_final_snapshot = false; break;
+	case OPT_WILD_SLASH:     opt_wildcards_slash = true; break;
+	case OPT_NO_WILD_SLASH:  opt_wildcards_slash = false; break;
+
+	case OPT_EXCLUDE: {
+		FileMatch entry = {
+			.flags = 0,
+			.glob = oarg
+		};
+		Vector_push(&opt_exclude, &entry);
+		break;
+	}
+	case OPT_REXCLUDE:
+		if (!handle_file_re_opt(oarg, &opt_exclude, "fies-restore"))
+			option_error = true;
+		break;
+	case OPT_INCLUDE: {
+		int flags = opt_wildcards_slash ? FMATCH_WILDCARD_SLASH : 0;
+		FileMatch entry = {
+			.flags = flags,
+			.glob = oarg
+		};
+		Vector_push(&opt_include, &entry);
+		break;
+	}
+	case OPT_RINCLUDE:
+		if (!handle_file_re_opt(oarg, &opt_include, "fies-restore"))
+			option_error = true;
+		break;
 
 	case '?':
 		fprintf(stderr, "fies-restore: unrecognized option: %c\n",
@@ -116,6 +161,27 @@ handle_option(int c, int oopt, const char *oarg)
 		fprintf(stderr, "fies-restore: option error\n");
 		usage(stderr, EXIT_FAILURE);
 	}
+}
+
+static bool
+path_matches(const char *path, VectorOf(FileMatch) *vec)
+{
+	FileMatch *it;
+	Vector_foreach(vec, it) {
+		if (FileMatch_matches(it, path, 0))
+			return true;
+	}
+	return false;
+}
+
+static bool
+opt_is_snapshot_excluded(const char *name)
+{
+	if (Vector_empty(&opt_exclude) && Vector_empty(&opt_include))
+		return false;
+	if (!Vector_empty(&opt_include) && !path_matches(name, &opt_include))
+		return true;
+	return path_matches(name, &opt_exclude);
 }
 
 static int     stream_fd         = STDIN_FILENO;
@@ -219,7 +285,10 @@ snap_take_snapshot(bool final)
 	assert(opt_cmd_snapshot != NULL);
 	if (!snap_lastname || !snap_lastname[0])
 		warn(WARN_GENERIC, "fies-restore: empty snapshot name\n");
-	if (!snap_run_command(opt_cmd_snapshot, NULL))
+	else if (opt_is_snapshot_excluded(snap_lastname))
+		verbose(VERBOSE_ACTIONS, "not creating snapshot %s\n",
+		        snap_lastname);
+	else if (!snap_run_command(opt_cmd_snapshot, NULL))
 		return -EFAULT;
 
 	if (!final && reopen)
@@ -530,6 +599,8 @@ reader_funcs = {
 static void
 main_cleanup()
 {
+	Vector_destroy(&opt_exclude);
+	Vector_destroy(&opt_include);
 	Vector_destroy(&opt_xform);
 	u_strfreev(opt_cmd_create);
 	u_strfreev(opt_cmd_resize);
@@ -541,6 +612,14 @@ main_cleanup()
 int
 main(int argc, char **argv)
 {
+	Vector_init_type(&opt_exclude, FileMatch);
+	Vector_set_destructor(&opt_exclude,
+	                      (Vector_dtor*)FileMatch_destroy);
+
+	Vector_init_type(&opt_include, FileMatch);
+	Vector_set_destructor(&opt_include,
+	                      (Vector_dtor*)FileMatch_destroy);
+
 	Vector_init_type(&opt_xform, RexReplace*);
 	Vector_set_destructor(&opt_xform, (Vector_dtor*)RexReplace_pdestroy);
 

@@ -164,47 +164,6 @@ static int   stream_fd = -1;
 uint32_t     fies_flags = 0;
 clone_info_t clone_info = { 0, 0, 0 };
 
-static int
-file_re_flag(void *opaque, char c)
-{
-	int *flags = opaque;
-	switch (c) {
-	case 'r': *flags |= FMATCH_F_REG; break;
-	case 'd': *flags |= FMATCH_F_DIR; break;
-	case 'l': *flags |= FMATCH_F_LNK; break;
-	case 'b': *flags |= FMATCH_F_BLK; break;
-	case 'c': *flags |= FMATCH_F_CHR; break;
-	case 'R': *flags = (*flags & ~FMATCH_F_REG) | FMATCH_NEGATIVE; break;
-	case 'D': *flags = (*flags & ~FMATCH_F_DIR) | FMATCH_NEGATIVE; break;
-	case 'L': *flags = (*flags & ~FMATCH_F_LNK) | FMATCH_NEGATIVE; break;
-	case 'B': *flags = (*flags & ~FMATCH_F_BLK) | FMATCH_NEGATIVE; break;
-	case 'C': *flags = (*flags & ~FMATCH_F_CHR) | FMATCH_NEGATIVE; break;
-	default:
-		fprintf(stderr, "fies: invalid flag for file regex: %c\n", c);
-		return -EINVAL;
-	}
-	return 0;
-}
-
-static void
-handle_file_re_opt(const char *pattern, Vector *dest)
-{
-	char *err = NULL;
-	int flags = 0;
-	Regex *re = Regex_parse_full(pattern, 0, &err, file_re_flag, &flags);
-	if (re) {
-		FileMatch entry = {
-			.flags = flags,
-			.regex = re
-		};
-		Vector_push(dest, &entry);
-	} else {
-		fprintf(stderr, "fies: regex error: %s\n", err);
-		free(err);
-		option_error = true;
-	}
-}
-
 static void
 handle_re_opt(const char *pattern, Vector *dest)
 {
@@ -362,7 +321,8 @@ handle_option(int c, int oopt, const char *oarg)
 		break;
 	}
 	case OPT_REXCLUDE:
-		handle_file_re_opt(oarg, &opt_exclude);
+		if (!handle_file_re_opt(oarg, &opt_exclude, "fies"))
+			option_error = true;
 		break;
 	case OPT_INCLUDE: {
 		int flags = opt_wildcards_slash ? FMATCH_WILDCARD_SLASH : 0;
@@ -374,7 +334,8 @@ handle_option(int c, int oopt, const char *oarg)
 		break;
 	}
 	case OPT_RINCLUDE:
-		handle_file_re_opt(oarg, &opt_include);
+		if (!handle_file_re_opt(oarg, &opt_include, "fies"))
+			option_error = true;
 		break;
 	case OPT_XATTR_EXCLUDE:
 		Vector_push(&opt_xattr_exclude, &oarg);
