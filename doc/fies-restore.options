@@ -46,3 +46,9 @@
 \long
     If the volume contained in the stream changes size this command is executed
     before reopening it.
+
+\opt --no-final-snapshot
+\short don't take a final snapshot at the end
+\long
+    Causes the last file is considered to be the "current state" rather than a
+    final snapshot. (Default is to create a snapshot).

@@ -22,13 +22,14 @@
 
 static const char           *opt_file    = NULL;
 static VectorOf(RexReplace*) opt_xform;
-static char  **opt_cmd_open     = NULL;
-static char  **opt_cmd_snapshot = NULL;
-static char  **opt_cmd_close    = NULL;
-static char  **opt_cmd_resize   = NULL;
-static char  **opt_cmd_create   = NULL;
-static char   *opt_devname      = NULL;
-static char   *opt_filename     = NULL;
+static char  **opt_cmd_open       = NULL;
+static char  **opt_cmd_snapshot   = NULL;
+static char  **opt_cmd_close      = NULL;
+static char  **opt_cmd_resize     = NULL;
+static char  **opt_cmd_create     = NULL;
+static char   *opt_devname        = NULL;
+static char   *opt_filename       = NULL;
+static bool    opt_final_snapshot = true;
 
 static bool option_error = false;
 
@@ -45,6 +46,9 @@ usage(FILE *out, int exit_code)
 	exit(exit_code);
 }
 
+#define OPT_FINAL_SNAPSHOT     (0x1100+'s')
+#define OPT_NO_FINAL_SNAPSHOT  (0x1000+'s')
+
 static struct option longopts[] = {
 	{ "help",                    no_argument, NULL, 'h' },
 	{ "file",              required_argument, NULL, 'f' },
@@ -57,6 +61,10 @@ static struct option longopts[] = {
 	{ "close",             required_argument, NULL, 'c' },
 	{ "snapshot",          required_argument, NULL, 'S' },
 	{ "resize",            required_argument, NULL, 'R' },
+
+	{ "final-snapshot",          no_argument, NULL, OPT_FINAL_SNAPSHOT },
+	{ "nofinal-snapshot",        no_argument, NULL, OPT_NO_FINAL_SNAPSHOT },
+	{ "no-final-snapshot",       no_argument, NULL, OPT_NO_FINAL_SNAPSHOT },
 
 	{ NULL, 0, NULL, 0 }
 };
@@ -96,6 +104,9 @@ handle_option(int c, int oopt, const char *oarg)
 	case 'c': command_opt(&opt_cmd_close,    oarg); break;
 	case 'S': command_opt(&opt_cmd_snapshot, oarg); break;
 	case 'R': command_opt(&opt_cmd_resize,   oarg); break;
+
+	case OPT_FINAL_SNAPSHOT:    opt_final_snapshot = true; break;
+	case OPT_NO_FINAL_SNAPSHOT: opt_final_snapshot = false; break;
 
 	case '?':
 		fprintf(stderr, "fies-restore: unrecognized option: %c\n",
@@ -191,22 +202,27 @@ snap_open_output(int extra_mode)
 }
 
 static int
-snap_take_snapshot()
+snap_take_snapshot(bool final)
 {
 	bool reopen = (opt_cmd_open || opt_cmd_close);
 
 	fsync(snap_outfd);
-	if (reopen) {
+	if (final || reopen) {
 		int rc = snap_close_output();
 		if (rc < 0)
 			return rc;
 	}
 
+	if (final && !opt_final_snapshot)
+		return 0;
+
 	assert(opt_cmd_snapshot != NULL);
+	if (!snap_lastname || !snap_lastname[0])
+		warn(WARN_GENERIC, "fies-restore: empty snapshot name\n");
 	if (!snap_run_command(opt_cmd_snapshot, NULL))
 		return -EFAULT;
 
-	if (reopen)
+	if (!final && reopen)
 		return snap_open_output(0);
 	return 0;
 }
@@ -248,7 +264,7 @@ snap_create(void *opaque,
 			showerr("fies-restore: volume size changed\n");
 			goto out;
 		}
-		retval = snap_take_snapshot();
+		retval = snap_take_snapshot(false);
 		if (retval < 0)
 			goto out;
 	} else {
@@ -586,7 +602,7 @@ main(int argc, char **argv)
 		warn(WARN_GENERIC, "fies-restore: %s\n", strerror(-rc));
 		showerr("fies-restore: %s\n", FiesReader_getError(fies));
 	}
-	int fin = snap_close_output();
+	int fin = snap_take_snapshot(true);
 	if (fin < 0) {
 		showerr("fies-restore: %s\n", strerror(-fin));
 		rc = fin;
