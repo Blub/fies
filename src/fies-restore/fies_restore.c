@@ -107,6 +107,7 @@ handle_option(int c, int oopt, const char *oarg)
 	}
 }
 
+static int     stream_fd         = STDIN_FILENO;
 static char   *snap_lastname     = NULL;
 static size_t  snap_size         = 0;
 static int     snap_outfd        = -1;
@@ -141,6 +142,10 @@ snap_run_command(char **template_args, const char *size_arg)
 	}
 
 	if (!cld) {
+		// don't leak fds to eg. lvm calls
+		if (stream_fd != STDIN_FILENO)
+			close(stream_fd);
+		close(snap_outfd);
 		execvp(argv[0], argv);
 		showerr("fies-restore: exec(%s): %s\n", argv[0], strerror(errno));
 		exit(EXIT_FAILURE);
@@ -555,7 +560,6 @@ main(int argc, char **argv)
 		return 1;
 	}
 
-	int stream_fd = STDIN_FILENO;
 	if (opt_file && strcmp(opt_file, "-")) {
 		stream_fd = open(opt_file, O_RDONLY);
 		if (stream_fd < 0) {
