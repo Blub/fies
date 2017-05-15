@@ -23,7 +23,7 @@ all: $(MANPAGES)
 	rst2man $< $@
 
 .rst.in.rst:
-	$(SECTION) parse $< $@
+	$(SECTION) parse -M$@.d $< $@
 
 fies.1: fies.rst.in $(BUILDSYS_DEPS)
 fies-dmthin.1: fies-dmthin.rst.in $(BUILDSYS_DEPS)
@@ -56,4 +56,6 @@ uninstall-man1:
 	-rmdir $(DESTDIR)$(MAN1DIR)
 
 clean:
-	rm -f fies*.1 fies*.rst
+	rm -f fies*.1 fies*.rst *.d
+
+-include *.d

@@ -5,6 +5,8 @@ use warnings;
 
 use Text::Wrap ();
 
+our $makedepends;
+
 sub wrap {
 	local $Text::Wrap::huge = 'wrap';
 	local $Text::Wrap::columns = shift;
@@ -190,8 +192,10 @@ sub sections_pipe($$) {
 	my ($infd, $outfd) = @_;
 	while (defined(my $line = <$infd>)) {
 		if ($line =~ /\\OPTIONS (\w+) ([a-zA-Z0-9_\-.]+)\s*$/) {
-			open(my $ofd, '<', $2)
-				or die "failed to open $2: $!\n";
+			my $incfile = $2;
+			print {$makedepends->[0]} "$makedepends->[1]: $incfile\n" if defined $makedepends;
+			open(my $ofd, '<', $incfile)
+				or die "failed to open $incfile: $!\n";
 			option_format($1, $ofd, $outfd);
 			close($ofd);
 		} else {

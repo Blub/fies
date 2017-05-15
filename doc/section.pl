@@ -50,6 +50,16 @@ parse => sub {
 	my $infd = \*STDIN;
 	my $outfd = \*STDOUT;
 
+	my $makedep;
+
+	if (@ARGV && $ARGV[0] =~ /^-M(.+)$/) {
+		open(my $makefd, '>', $1)
+			or die "open($1): $!\n";
+		$makefd->autoflush;
+		$makedep = [$makefd, 'stdin'];
+		shift @ARGV;
+	}
+
 	if (@ARGV > 2) {
 		print STDERR "section: too many parameters\n";
 		usage();
@@ -62,6 +72,7 @@ parse => sub {
 	}
 
 	if (@ARGV) {
+		$makedep->[1] = $ARGV[0] if defined($makedep);
 		my $outfile = $ARGV[0];
 		$cleanup = sub { unlink($outfile) };
 		open($outfd, '>', $outfile)
@@ -69,6 +80,7 @@ parse => sub {
 		shift @ARGV;
 	}
 
+	local $Sections::makedepends = $makedep;
 	Sections::sections_pipe($infd, $outfd);
 }
 );
