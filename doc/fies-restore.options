@@ -65,7 +65,7 @@
 \opt --rexclude= REGEX
 \short exclude names matching this regular expression
     Do not create snapshots for files matching the provided extended regular
-    expression. See the `REGULAR EXPRESSIONS`_ section for details.
+    expression. See the `REGULAR EXPRESSIONS` section in `fies(1)` for details.
 
 \opt --include= GLOB
 \short include names matching this pattern
