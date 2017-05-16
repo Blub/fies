@@ -224,7 +224,8 @@ snap_run_command(char **template_args, const char *size_arg)
 			close(stream_fd);
 		close(snap_outfd);
 		execvp(argv[0], argv);
-		showerr("fies-restore: exec(%s): %s\n", argv[0], strerror(errno));
+		showerr("fies-restore: exec(%s): %s\n",
+		        argv[0], strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 	u_strfreev(argv);
@@ -323,8 +324,8 @@ snap_create(void *opaque,
 
 	if (snap_lastname) {
 		if (!snap_cur_done) {
-			showerr("fies-restore: previous snapshot not done yet, "
-			        "not a snapshot stream\n");
+			showerr("fies-restore: previous snapshot not done yet,"
+			        " not a snapshot stream\n");
 			goto out;
 		}
 		if (size != snap_size) {

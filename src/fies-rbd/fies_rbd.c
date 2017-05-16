@@ -352,7 +352,10 @@ typedef struct {
 } RBDFile;
 
 static int
-RBDFile_extent_cb(const uint64_t off, const size_t len, int has_data, void *opaque)
+RBDFile_extent_cb(const uint64_t off,
+                  const size_t len,
+                  int has_data,
+                  void *opaque)
 {
 	FiesFile *handle = opaque;
 	RBDFile *self = handle->opaque;

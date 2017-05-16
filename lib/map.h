@@ -106,8 +106,10 @@ Map_new_type(C, KT, KD, VT, VD) \
 
 #define \
 Map_foreach(M, KP, VP) \
-	for ((KP) = Vector_begin(&(M)->keys), (VP) = Vector_begin(&(M)->values); \
+	for ((KP) = Vector_begin(&(M)->keys), \
+	       (VP) = Vector_begin(&(M)->values); \
 	     (KP) != Vector_end(&(M)->keys); \
-	     Vector_advance(&(M)->keys, (KP)), Vector_advance(&(M)->values, (VP)))
+	     Vector_advance(&(M)->keys, (KP)), \
+	       Vector_advance(&(M)->values, (VP)))
 
 #endif

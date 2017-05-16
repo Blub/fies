@@ -266,8 +266,8 @@ handle_option(int c, int oopt, const char *oarg)
 		if (!arg_stol(oarg, &num, "--strip-components", "fies"))
 			option_error = true;
 		else if (num < 0) {
-			fprintf(stderr,
-			        "fies: --strip-components: must be 0 or positive\n");
+			fprintf(stderr, "fies: --strip-components:"
+			        " must be 0 or positive\n");
 			option_error = true;
 		}
 		opt_strip_components = (size_t)num;
@@ -275,7 +275,7 @@ handle_option(int c, int oopt, const char *oarg)
 	}
 	case 's': {
 		char *errstr = NULL;
-		// FIXME: Include the additional file related options here as well.
+		// FIXME: Include the extra file related options here as well.
 		RexReplace *xform = RexReplace_new(oarg, &errstr);
 		if (!xform) {
 			fprintf(stderr, "fies: %s\n", errstr);
@@ -599,8 +599,8 @@ create_add_from_list(FiesWriter *fies, const char *listfile, bool xforming)
 				const char *xform = NULL;
 				if (xforming && len)
 					xform = buffer;
-				rc = do_create_add(fies, AT_FDCWD, from, from, 0,
-				                   xform);
+				rc = do_create_add(fies, AT_FDCWD, from, from,
+				                   0, xform);
 				if (rc < 0)
 					goto out;
 				rc = ERR_SKIPMSG; // reset error code

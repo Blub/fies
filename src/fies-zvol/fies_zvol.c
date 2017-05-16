@@ -545,7 +545,10 @@ zvol_add_obj(FiesWriter *fies,
 }
 
 static int
-do_zvol_add(FiesWriter *fies, const char *pool, const char *volname, objset_t *os)
+do_zvol_add(FiesWriter *fies,
+            const char *pool,
+            const char *volname,
+            objset_t *os)
 {
 	dmu_objset_stats_t dds;
 #pragma clang diagnostic push

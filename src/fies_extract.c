@@ -624,8 +624,8 @@ do_clone(void *opaque,
 	// typically only makes sense if both files use the same block size
 	// since otherwise we'd most likely be on different devices and getting
 	// EXDEV instead.
-	 if (srcfh->blocksize != dstfh->blocksize)
-	 	return do_full_copy(opaque, dst, dstoff, src, srcoff, len);
+	if (srcfh->blocksize != dstfh->blocksize)
+		return do_full_copy(opaque, dst, dstoff, src, srcoff, len);
 
 	// Check alignment and shifts:
 	fies_pos a_srcoff = FIES_ALIGN_UP(srcoff, srcfh->blocksize);
@@ -815,7 +815,8 @@ do_file_done(void *opaque, void *pfd)
 		else
 			rc = -(errno = EFAULT);
 		if (rc != 0)
-			warn(WARN_MTIME, "fies: futimens: %s (ignoring error)\n",
+			warn(WARN_MTIME,
+			     "fies: futimens: %s (ignoring error)\n",
 			     strerror(errno));
 	}
 	return 0;

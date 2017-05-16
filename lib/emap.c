@@ -169,8 +169,8 @@ FiesEMap_add(FiesEMap *self,
 		const fies_pos it_phy_end = it->physical + it->length;
 		if (it_phy_end >= (ex.physical+ex.length)) {
 			// 'it' covers the entire rest of 'ex'
-			return for_avail(opaque, ex.logical, ex.length, it->file,
-			                 copy_logical);
+			return for_avail(opaque, ex.logical, ex.length,
+			                 it->file, copy_logical);
 		}
 		fies_pos len = it_phy_end - ex.physical;
 		int rc = for_avail(opaque, ex.logical, len, it->file,

@@ -5,7 +5,7 @@
 #include <linux/fiemap.h>
 
 #ifndef FICLONE
-#  define FICLONE		_IOW(0x94, 9, int)
+#  define FICLONE _IOW(0x94, 9, int)
 #endif
 #ifndef FICLONERANGE
 struct file_clone_range {
@@ -14,7 +14,7 @@ struct file_clone_range {
 	__u64 src_length;
 	__u64 dest_offset;
 };
-#  define FICLONERANGE	_IOW(0x94, 13, struct file_clone_range)
+#  define FICLONERANGE _IOW(0x94, 13, struct file_clone_range)
 #endif
 
 #ifndef FALLOC_FL_ZERO_RANGE
