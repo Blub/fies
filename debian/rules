@@ -14,4 +14,5 @@ override_dh_auto_configure:
 		--enable-shared \
 		--enable-dmthin \
 		--enable-rbd \
-		--enable-zvol
+		--enable-zvol \
+		--enable-doc
