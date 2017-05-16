@@ -9,6 +9,8 @@ ENABLE_zvol=
 
 ENABLE_tests=
 
+ENABLE_doc=
+
 CONFIGURE_OPTS="$@"
 
 # C defines:
@@ -31,7 +33,7 @@ options:
   --enable-shared   build a shared library
   --enable-static   build a static library
 
-  --enable-doc      enable documentation (defaults to off)
+  --enable-doc      enable documentation
 
   --enable-dmthin   enable the dmthin backend
   --enable-rbd      enable the rbd backend
@@ -83,6 +85,10 @@ addopt() {
     --enable-tests) ENABLE_tests='yes' ;;
     --disable-tests) ENABLE_tests='no' ;;
     --enable-tests=*) ENABLE_tests="${opt#--enable-tests=}" ;;
+
+    --enable-doc) ENABLE_doc='yes' ;;
+    --disable-doc) ENABLE_doc='no' ;;
+    --enable-doc=*) ENABLE_doc="${opt#--enable-doc=}" ;;
 
     *)
       echo "unknown option: $opt"
@@ -150,6 +156,12 @@ testcheck() {
 CONFIG_TESTS=n
 ifenabled ENABLE_tests testcheck && CONFIG_TESTS=y
 confdef CONFIG_TESTS
+
+doccheck() {
+  checkprog 'rst2man' RST2MAN rst2man || return 1
+}
+ifenabled ENABLE_doc doccheck && CONFIG_DOC=y
+confdef CONFIG_DOC
 
 must checkprog libtool LIBTOOL libtool
 LTFLAGS=''
@@ -250,6 +262,9 @@ mak '-include $(ROOTDIR)/local.mak'
 mak "include ${srcdir}/common.mak"
 
 cat <<EOF
+Config:
+  doc:          $ENABLE_doc
+  tests:        $ENABLE_tests
 Flags:
   fies-dmthin:  $ENABLE_dmthin
   fies-rbd:     $ENABLE_rbd

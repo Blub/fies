@@ -1,8 +1,9 @@
 include config.mak
 
 test_SUBDIRS-$(CONFIG_TESTS) := tests
+doc_SUBDIRS-$(CONFIG_DOC) := doc
 
-SUBDIRS := lib src include doc
+SUBDIRS := lib src include $(doc_SUBDIRS-y)
 
 tests-$(CONFIG_TESTS) := run-tests
 

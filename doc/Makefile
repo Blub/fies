@@ -20,7 +20,7 @@ all: $(MANPAGES)
 .SUFFIXES: .1 .rst .rst.in
 
 .rst.1:
-	rst2man $< $@
+	$(RST2MAN) $< $@
 
 .rst.in.rst:
 	$(SECTION) parse -M$@.d $< $@
