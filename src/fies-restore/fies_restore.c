@@ -540,7 +540,8 @@ snap_pwrite(void *opaque,
 {
 	(void)opaque;
 	if (out != snap_cur_handle) {
-		showerr("fies-restore: write to old target, not a snapshot stream\n");
+		showerr("fies-restore: encountered write to old target,"
+		        " not a snapshot stream\n");
 		return -EBADF;
 	}
 	if (!buf)
@@ -560,7 +561,8 @@ snap_clone(void *opaque,
 	(void)srcoff;
 	(void)len;
 	if (dst != snap_cur_handle) {
-		showerr("fies-restore: out of order clone, not a snapshot stream\n");
+		showerr("fies-restore: encountered an out-of-order clone,"
+		        " not a snapshot stream\n");
 		return -EBADF;
 	}
 	if ((char*)src >= snap_cur_handle) {
