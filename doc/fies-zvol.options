@@ -47,7 +47,6 @@
     process. This can be automated with this option. After the volume has been
     read its read-write status will be reverted to its original state.
 
-
 \opt --rw
 \only cli
 \short don't error on writable zvols
@@ -60,3 +59,14 @@
     Since archiving zvols which are being write-accessed is causes the archive
     to contain potentially corrupt data, ``fies-zvol`` by default errors when
     trying to archive a writable volume.
+
+\opt --from-snapshot NAME
+\short make an incremental stream starting at a snapshot
+\long
+    This snapshot will be considered a reference snapshot. Its contents will
+    not be written to the output stream.
+\opt --to-snapshot NAME
+\short only go up to including the specified snapshot
+\long
+    Instead of going up to the current snapshot of a zvol, stop after the
+    specified one.

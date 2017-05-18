@@ -31,6 +31,7 @@
 #pragma clang diagnostic pop
 
 #define ERR_SKIPMSG 1
+#define ITER_END 2
 
 static const char           *opt_file      = NULL;
 static long                  opt_uid       = -1;
@@ -39,6 +40,8 @@ static VectorOf(RexReplace*) opt_xform;
 static bool                  opt_snapshots = true;
 static bool                  opt_set_ro    = false;
 static bool                  opt_ignore_rw = false;
+static const char           *opt_from      = NULL;
+static const char           *opt_to        = NULL;
 
 static bool option_error = false;
 
@@ -68,6 +71,8 @@ usage(FILE *out, int exit_code)
 #define OPT_NO_SET_RO        (0x1000+'r')
 #define OPT_IGNORE_RW        (0x1100+'w')
 #define OPT_NO_IGNORE_RW     (0x1000+'w')
+#define OPT_FROM_SNAPSHOT    (0x1000+'F')
+#define OPT_TO_SNAPSHOT      (0x1000+'T')
 
 static struct option longopts[] = {
 	{ "help",                    no_argument, NULL, 'h' },
@@ -81,6 +86,9 @@ static struct option longopts[] = {
 	{ "snapshots",               no_argument, NULL, OPT_SNAPSHOTS },
 	{ "nosnapshots",             no_argument, NULL, OPT_NO_SNAPSHOTS },
 	{ "no-snapshots",            no_argument, NULL, OPT_NO_SNAPSHOTS },
+
+	{ "from-snapshot",     required_argument, NULL, OPT_FROM_SNAPSHOT },
+	{ "to-snapshot",       required_argument, NULL, OPT_TO_SNAPSHOT },
 
 	{ "setro",                   no_argument, NULL, OPT_SET_RO },
 	{ "set-ro",                  no_argument, NULL, OPT_SET_RO },
@@ -128,6 +136,9 @@ handle_option(int c, int oopt, const char *oarg)
 	case OPT_NO_SET_RO:    opt_set_ro = false;    break;
 	case OPT_IGNORE_RW:    opt_ignore_rw = true;  break;
 	case OPT_NO_IGNORE_RW: opt_ignore_rw = false; break;
+
+	case OPT_FROM_SNAPSHOT: opt_from = oarg; break;
+	case OPT_TO_SNAPSHOT:   opt_to = oarg;   break;
 
 	case '?':
 		fprintf(stderr, "fies-zvol: unrecognized option: %c\n",
@@ -481,6 +492,7 @@ zvol_file_funcs = {
 
 static int
 zvol_write(FiesWriter *fies,
+           bool as_ref,
            const char *pool,
            const char *volname,
            dnode_t *dn,
@@ -495,13 +507,18 @@ zvol_write(FiesWriter *fies,
 	else
 		verbose(VERBOSE_FILES, "%s/%s as %s\n",
 		        pool, volname, file->filename);
-	int rc = FiesWriter_writeFile(fies, file);
+	int rc;
+	if (as_ref)
+		rc = FiesWriter_readRefFile(fies, file);
+	else
+		rc = FiesWriter_writeFile(fies, file);
 	FiesFile_close(file);
 	return -rc;
 }
 
 static int
 zvol_add_obj(FiesWriter *fies,
+             bool as_ref,
              const char *pool,
              const char *volname,
              objset_t *os,
@@ -532,7 +549,8 @@ zvol_add_obj(FiesWriter *fies,
 	dmu_object_info_from_dnode(dn, &doi);
 
 	if (doi.doi_type == DMU_OT_ZVOL)
-		rc = zvol_write(fies, pool, volname, dn, doi.doi_max_offset);
+		rc = zvol_write(fies, as_ref, pool, volname,
+		                dn, doi.doi_max_offset);
 	else
 		rc = ENOENT; // positivie as this is not an actual error yet
 
@@ -546,6 +564,7 @@ zvol_add_obj(FiesWriter *fies,
 
 static int
 do_zvol_add(FiesWriter *fies,
+            bool as_ref,
             const char *pool,
             const char *volname,
             objset_t *os)
@@ -564,13 +583,13 @@ do_zvol_add(FiesWriter *fies,
 		return ERR_SKIPMSG;
 	}
 
-	int rc = zvol_add_obj(fies, pool, volname, os, 0);
+	int rc = zvol_add_obj(fies, as_ref, pool, volname, os, 0);
 	if (rc <= 0)
 		return rc;
 
 	uint64_t object = 0;
 	while ( (rc = dmu_object_next(os, &object, B_FALSE, 0)) == 0) {
-		rc = zvol_add_obj(fies, pool, volname, os, object);
+		rc = zvol_add_obj(fies, as_ref, pool, volname, os, object);
 		if (rc <= 0)
 			return rc;
 	}
@@ -635,10 +654,18 @@ zvol_done(const char *name)
 	return false;
 }
 
-static int zvol_add(char *volume, zfs_handle_t *zh, FiesWriter *fies);
+struct snapshot_iteration {
+	FiesWriter *fies;
+	const char *from;
+	const char *to;
+};
+
+static int zvol_add(char *volume, bool as_ref, zfs_handle_t*, FiesWriter*);
 static int
 zvol_addsnap(zfs_handle_t *szh, void *opaque)
 {
+	struct snapshot_iteration *iter = opaque;
+
 	const char *name = zfs_get_name(szh);
 	if (!name) {
 		// impossible... usually
@@ -647,20 +674,45 @@ zvol_addsnap(zfs_handle_t *szh, void *opaque)
 		return ERR_SKIPMSG;
 	}
 
+	const char *snap = strchr(name, '@');
+	bool as_ref = false;
+	bool last = false;
+	if (snap) {
+		++snap;
+		if (iter->from) {
+			if (!strcmp(snap, iter->from)) {
+				iter->from = NULL;
+				as_ref = true;
+			} else {
+				return 0;
+			}
+		}
+		if (iter->to) {
+			if (!strcmp(snap, iter->to)) {
+				iter->from = iter->to; // magic
+				iter->to = NULL;
+				last = true;
+			}
+		}
+	}
+
 	char *namedup = strdup(name);
 	if (!namedup) {
 		fprintf(stderr, "fies-zvol: error: %s\n", strerror(errno));
 		return ERR_SKIPMSG;
 	}
 
-	FiesWriter *fies = opaque;
-	int rc = zvol_add(namedup, szh, fies);
+	int rc = zvol_add(namedup, as_ref, szh, iter->fies);
 	free(namedup);
+	if (rc)
+		return rc;
+	if (last)
+		return ITER_END;
 	return rc;
 }
 
 static int
-zvol_add(char *volume, zfs_handle_t *zh, FiesWriter *fies)
+zvol_add(char *volume, bool as_ref, zfs_handle_t *zh, FiesWriter *fies)
 {
 	char *poolsep = strchr(volume, '/');
 	if (!poolsep) {
@@ -686,9 +738,17 @@ zvol_add(char *volume, zfs_handle_t *zh, FiesWriter *fies)
 	int retval;
 
 	if (opt_snapshots) {
-		retval = zfs_iter_snapshots_sorted(zh, zvol_addsnap, fies);
-		if (retval)
+		opt_snapshots = false; // disable nesting
+		struct snapshot_iteration iter = {
+			fies, opt_from, opt_to
+		};
+		retval = zfs_iter_snapshots_sorted(zh, zvol_addsnap, &iter);
+		opt_snapshots = true; // reenable
+		if (retval) {
+			if (retval == ITER_END)
+				retval = 0;
 			goto out_zh;
+		}
 	}
 
 	retval = ERR_SKIPMSG;
@@ -721,7 +781,7 @@ zvol_add(char *volume, zfs_handle_t *zh, FiesWriter *fies)
 		goto out_restore;
 	}
 	*poolsep = 0;
-	retval = do_zvol_add(fies, volume, poolsep+1, os);
+	retval = do_zvol_add(fies, as_ref, volume, poolsep+1, os);
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wcast-qual"
 	dmu_objset_disown(os, FTAG);
@@ -760,6 +820,17 @@ main(int argc, char **argv)
 		handle_option(c, optopt, optarg);
 	}
 
+	if (opt_from && !*opt_from)
+		opt_from = NULL;
+	if (opt_to && !*opt_to)
+		opt_from = NULL;
+
+	if ((opt_from || opt_to) && !opt_snapshots) {
+		showerr("fies-zvol: --from and --to "
+		        "require --snapshots to be set\n");
+		option_error = true;
+	}
+
 	if (option_error)
 		usage(stderr, EXIT_FAILURE);
 
@@ -767,6 +838,12 @@ main(int argc, char **argv)
 	argv += optind;
 	if (!argc) {
 		fprintf(stderr, "fies-zvol: missing volume names\n");
+		usage(stderr, EXIT_FAILURE);
+	}
+
+	if ((opt_from || opt_to) && argc != 1) {
+		showerr("fies-zvol: --from and --to "
+		        "can only be used with a single volume\n");
 		usage(stderr, EXIT_FAILURE);
 	}
 
@@ -801,7 +878,7 @@ main(int argc, char **argv)
 
 	for (int i = 0; i != argc; ++i) {
 		char *volume = argv[i];
-		rc = zvol_add(volume, NULL, fies);
+		rc = zvol_add(volume, false, NULL, fies);
 		if (rc == ERR_SKIPMSG)
 			goto out_skiperrmsg;
 		if (rc)
