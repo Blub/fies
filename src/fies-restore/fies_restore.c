@@ -192,6 +192,8 @@ static bool    snap_cur_done     = false;
 static char   *snap_cur_handle   = NULL;
 
 static unsigned int snap_discard_zeroes = (unsigned int)-1;
+static int snap_can_punch_hole = -1;
+static int snap_can_zero_range = -1;
 
 static bool
 snap_run_command(char **template_args, const char *size_arg)
@@ -492,14 +494,23 @@ snap_punch_hole(void *opaque, void *out, fies_pos off, fies_sz length)
 	(void)opaque;
 	(void)out;
 
-	int mode = FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE;
-	verbose(VERBOSE_ACTIONS, "zero-out: %zx : %zx\n", off, length);
-	if (fallocate(snap_outfd, mode, (off_t)off, (off_t)length) == 0)
-		return 0;
+	int rc, mode;
+	if (snap_can_punch_hole == 0)
+		goto try_discard;
 
-	int rc;
-	if (errno == ENODEV) {
+	mode = FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE;
+	verbose(VERBOSE_ACTIONS, "zero-out: %zx : %zx\n", off, length);
+	if (fallocate(snap_outfd, mode, (off_t)off, (off_t)length) == 0) {
+		snap_can_punch_hole = 1;
+		return 0;
+	}
+
+	if (snap_can_punch_hole < 0 &&
+	    (errno == ENODEV || errno == ENOTSUP || errno == EOPNOTSUPP))
+	{
+		snap_can_punch_hole = 0;
 		verbose(VERBOSE_ACTIONS, "not a regular file => DISCARD\n");
+	 try_discard:
 		rc = snap_discard(opaque, out, off, length, false);
 	} else {
 		return -errno;
@@ -512,17 +523,29 @@ snap_punch_hole(void *opaque, void *out, fies_pos off, fies_sz length)
 static ssize_t
 snap_make_zero(void *opaque, void *out, fies_pos pos, fies_sz count)
 {
-	int mode = FALLOC_FL_ZERO_RANGE | FALLOC_FL_KEEP_SIZE;
-	verbose(VERBOSE_ACTIONS, "zero-out: %zx : %zx\n", pos, count);
-	if (fallocate(snap_outfd, mode, (off_t)pos, (off_t)count) == 0)
-		return (ssize_t)count;
+	int rc, mode;
+	if (snap_can_zero_range == 0) {
+		if (snap_can_punch_hole == 0)
+			goto try_discard;
+		goto try_punch_hole;
+	}
 
-	int rc;
+	mode = FALLOC_FL_ZERO_RANGE | FALLOC_FL_KEEP_SIZE;
+	verbose(VERBOSE_ACTIONS, "zero-out: %zx : %zx\n", pos, count);
+	if (fallocate(snap_outfd, mode, (off_t)pos, (off_t)count) == 0) {
+		snap_can_zero_range = 1;
+		return (ssize_t)count;
+	}
+
 	if (errno == ENODEV) {
+		snap_can_zero_range = 0;
 		verbose(VERBOSE_ACTIONS, "not a regular file => BLKZEROOUT\n");
+	 try_discard:
 		rc = snap_discard(opaque, out, pos, count, true);
-	} else if (errno == EOPNOTSUPP) {
+	} else if (errno == ENOTSUP || errno == EOPNOTSUPP) {
+		snap_can_zero_range = 0;
 		verbose(VERBOSE_ACTIONS, "zero-out failed, punching hole\n");
+	 try_punch_hole:
 		rc = snap_punch_hole(opaque, out, pos, count);
 	} else {
 		return -errno;
