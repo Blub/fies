@@ -47,11 +47,17 @@
     If the volume contained in the stream changes size this command is executed
     before reopening it.
 
+\opt --final-snapshot
+\only cli
+\short take a final snapshot at the end (default)
 \opt --no-final-snapshot
+\only cli
 \short don't take a final snapshot at the end
+\opt --final-snapshot, --no-final-snapshot
+\only doc
 \long
-    Causes the last file is considered to be the "current state" rather than a
-    final snapshot. (Default is to create a snapshot).
+    Change whether the last file is considered to be the "current state" rather
+    than a final snapshot. (Default is to create a snapshot).
 
 \opt --exclude= GLOB
 \short exclude names matching this pattern
