@@ -6,9 +6,9 @@ arch=('i686' 'x86_64')
 url="none"
 license=("private")
 # fies-dmthin and fies-rbd use glib2
-depends=('glib2')
-makedepends=('libtool' 'device-mapper' 'ceph')
-source=('fies::git+ssh://wry@wry2.qc.to/~wry/Git/fies.git')
+depends=('glib2' 'device-mapper')
+makedepends=('libtool' 'device-mapper' 'ceph' 'python-docutils')
+source=('fies::git+https://github.com/Blub/fies.git')
 sha1sums=('SKIP')
 
 pkgver() {
