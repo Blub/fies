@@ -137,9 +137,9 @@ do_create_add(struct FiesWriter *fies,
 		xformed = xform_path;
 	}
 
-	unsigned int flags = is_recursion ? 0 : FIES_F_CREATE_DEVICE;
+	unsigned int flags = is_recursion ? 0 : FIES_FILE_CREATE_DEVICE;
 	if (opt_dereference)
-		flags |= FIES_F_FOLLOW_SYMLINKS;
+		flags |= FIES_FILE_FOLLOW_SYMLINKS;
 
 	struct FiesFile *file = FiesFile_openat(dirfd, basepart, fies, flags);
 	if (!file) {

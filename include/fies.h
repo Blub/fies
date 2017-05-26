@@ -406,9 +406,9 @@ int    FiesFile_get_os_fd       (struct FiesFile *self);
 void   FiesFile_setDevice       (struct FiesFile *self, fies_id id);
 
 /*! \brief Create a device for the file if it doesn't exist yet. */
-#define FIES_F_CREATE_DEVICE    0x001
+#define FIES_FILE_CREATE_DEVICE    0x001
 /*! \brief Follow symlinks when opening files. */
-#define FIES_F_FOLLOW_SYMLINKS  0x002
+#define FIES_FILE_FOLLOW_SYMLINKS  0x002
 
 /*! \brief Open a file as a \c FiesFile .  */
 struct FiesFile* FiesFile_open  (const char *filename,
@@ -838,14 +838,14 @@ struct fies_file_end {
  * \brief Contains various meta information about files.
  *
  * The receiver should error when encountering a meta-field which is
- * not known to it and below FIES_FILE_META_CUSTOM.
+ * not known to it and below FIES_META_CUSTOM.
  *
- * Every file must have a FIES_FILE_META_END packet following it to signal the
+ * Every file must have a FIES_META_END packet following it to signal the
  * end of metadata. This is because it is good practice to not link the file
  * into the file system until at least all the permission-critical metadata has
  * been processed and applied to the O_TMPFILE-created file descriptor.
  *
- * Anything equal to or above FIES_FILE_META_CUSTOM may be warned about but
+ * Anything equal to or above FIES_META_CUSTOM may be warned about but
  * should not be treated as error. This is meant for application specific
  * information.
  */

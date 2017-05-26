@@ -447,7 +447,7 @@ FiesFile_fdopenfull(int fd,
 	fies_id devid;
 	int rc = FiesWriter_getOSDevice(writer, stbuf->st_dev,
 	                                &devid,
-	                                (flags & FIES_F_CREATE_DEVICE));
+	                                (flags & FIES_FILE_CREATE_DEVICE));
 	if (rc < 0) {
 		if (fd >= 0)
 			close(fd);
@@ -563,7 +563,7 @@ FiesFile_fdopen(int fd,
 	// FIXME: An fd pointing to a symlink should only possible on linux
 	// via O_PATH where we can also use readlinkat() with an empty string.
 	// For other platforms this is an error:
-	if (S_ISLNK(stbuf.st_mode) && !(flags & FIES_F_FOLLOW_SYMLINKS)) {
+	if (S_ISLNK(stbuf.st_mode) && !(flags & FIES_FILE_FOLLOW_SYMLINKS)) {
 #ifndef READLINKAT_EMPTY_PATH
 		errno = ELOOP;
 		return NULL;
@@ -596,11 +596,11 @@ FiesFile_openat(int dirfd,
                 unsigned int flags)
 {
 	int mode = O_RDONLY;
-	if ((!(flags & FIES_F_FOLLOW_SYMLINKS)))
+	if ((!(flags & FIES_FILE_FOLLOW_SYMLINKS)))
 		mode |= O_NOFOLLOW;
 	int fd = openat(dirfd, filename, mode);
 	if (fd < 0 && errno == ELOOP) {
-		if ((flags & FIES_F_FOLLOW_SYMLINKS))
+		if ((flags & FIES_FILE_FOLLOW_SYMLINKS))
 			return NULL;
 		return FiesFile_openlinkat(dirfd, filename, writer, flags);
 	}
