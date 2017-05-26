@@ -133,7 +133,7 @@ do_create(void *opaque,
 	int retval;
 	int openmode = O_CREAT | O_EXCL;
 	
-	if (opt_incremental && !(fies_flags & FIES_INCREMENTAL))
+	if (opt_incremental && !(fies_flags & FIES_F_INCREMENTAL))
 		openmode |= O_TRUNC;
 
 	unsigned long filetype = mode & FIES_M_FMT;

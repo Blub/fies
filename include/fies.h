@@ -467,23 +467,23 @@ struct FiesFile_Extent {
 #define FIES_VERSION 1
 
 /* Header flags are mostly hints but special purpose tools might require some
- * "order" in the file, eg. `fies-restore` needs FIES_WHOLE_FILES.
+ * "order" in the file, eg. `fies-restore` needs \c FIES_F_WHOLE_FILES.
  */
 
 /*! \brief Each file is finished before another one starts. */
-#define FIES_WHOLE_FILES 0x00000001
+#define FIES_F_WHOLE_FILES  0x00000001
 /*! \brief Random Access: Extents may be out of order. */
-#define FIES_UNORDERED   0x00000002
+#define FIES_F_UNORDERED    0x00000002
 /*! \brief Incremental: Files should not be zero initialized. */
-#define FIES_INCREMENTAL 0x00000004
+#define FIES_F_INCREMENTAL  0x00000004
 
 /*! \brief This tells FiesWriter_newFull not to write a fies_header. */
-#define FIES_RAW         0x80000000
+#define FIES_F_RAW          0x80000000
 
 /*! \brief If the user doesn't bother to specify their intentions we assume
  * they're writing whole files in a possibly random order.
  */
-#define FIES_DEFAULT_FLAGS (FIES_WHOLE_FILES | FIES_UNORDERED)
+#define FIES_F_DEFAULT_FLAGS (FIES_F_WHOLE_FILES | FIES_F_UNORDERED)
 
 struct fies_header {
 	char magic[4];

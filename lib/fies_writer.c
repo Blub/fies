@@ -150,7 +150,7 @@ FiesWriter_newFull(const struct FiesWriter_Funcs *funcs,
 extern FiesWriter*
 FiesWriter_new(const struct FiesWriter_Funcs *funcs, void *opaque)
 {
-	return FiesWriter_newFull(funcs, opaque, FIES_DEFAULT_FLAGS);
+	return FiesWriter_newFull(funcs, opaque, FIES_F_DEFAULT_FLAGS);
 }
 
 extern void
@@ -780,7 +780,7 @@ FiesWriter_writeOSFile(FiesWriter *self,
 static int
 FiesWriter_writeHeader(FiesWriter *self)
 {
-	if (self->flags & FIES_RAW)
+	if (self->flags & FIES_F_RAW)
 		return 0;
 
 	struct fies_header hdr = {
@@ -799,7 +799,7 @@ FiesWriter_writeHeader(FiesWriter *self)
 	if (rc < 0)
 		return rc;
 
-	self->flags |= FIES_RAW;
+	self->flags |= FIES_F_RAW;
 	return 0;
 }
 

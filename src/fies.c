@@ -653,7 +653,7 @@ fies_cli_create(int argc, char **argv)
 
 	struct FiesWriter *fies = FiesWriter_newFull(&create_writer_funcs,
 	                                             &stream_fd,
-	                                             FIES_WHOLE_FILES);
+	                                             FIES_F_WHOLE_FILES);
 	if (!fies) {
 		fprintf(stderr, "fies: failed to create fies writer: %s\n",
 		        strerror(errno));

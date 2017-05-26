@@ -77,7 +77,7 @@ FiesReader_newFull(const struct FiesReader_Funcs *funcs,
 extern FiesReader*
 FiesReader_new(const struct FiesReader_Funcs *funcs, void *opaque)
 {
-	return FiesReader_newFull(funcs, opaque, FIES_DEFAULT_FLAGS, 0);
+	return FiesReader_newFull(funcs, opaque, FIES_F_DEFAULT_FLAGS, 0);
 }
 
 extern void
