@@ -327,11 +327,13 @@ struct FiesFile_Funcs {
 	int     (*get_os_fd)      (struct FiesFile *handle);
 
 	// FIXME: Add support for ids by name.
+	// FIXME: Deprecated, should be in struct FiesFile
 	/*! \brief Get owner (user and group) of a file. */
 	int     (*get_owner)      (struct FiesFile *handle,
 	                           uid_t *uid,
 	                           gid_t *gid);
 
+	// FIXME: Deprecated, should be in struct FiesFile
 	/*! \brief Get the last modification time of a file. */
 	int     (*get_mtime)      (struct FiesFile *handle,
 	                           struct fies_time *time);
@@ -375,6 +377,13 @@ struct FiesFile {
 	uint32_t mode;    /*!< \brief Fies compatible file mode. */
 	fies_id device;   /*!< \brief Device ID for this file. */
 	fies_id fileid;   /*!< \brief Internal id, filled in by FiesWriter. */
+
+	struct fies_time mtime;
+	uint32_t uid;
+	uint32_t gid;
+	char *uname; /*!< \brief Owner's name, may be \c NULL . */
+	char *gname; /*!< \brief Owner's group name, may be \c NULL . */
+	uint32_t nlink; /*!< \brief Hard link count, may be zero. */
 };
 #pragma clang diagnostic pop
 
