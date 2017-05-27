@@ -326,18 +326,6 @@ struct FiesFile_Funcs {
 	/*! \brief Deprecated convenience callback. */
 	int     (*get_os_fd)      (struct FiesFile *handle);
 
-	// FIXME: Add support for ids by name.
-	// FIXME: Deprecated, should be in struct FiesFile
-	/*! \brief Get owner (user and group) of a file. */
-	int     (*get_owner)      (struct FiesFile *handle,
-	                           uid_t *uid,
-	                           gid_t *gid);
-
-	// FIXME: Deprecated, should be in struct FiesFile
-	/*! \brief Get the last modification time of a file. */
-	int     (*get_mtime)      (struct FiesFile *handle,
-	                           struct fies_time *time);
-
 	/*! \brief Get the device major and minor numbers of a special file. */
 	int     (*get_device)     (struct FiesFile *handle,
 	                           uint32_t *out_major,

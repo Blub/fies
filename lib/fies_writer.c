@@ -56,10 +56,9 @@ FiesFile_new2(void *opaque,
               fies_id device)
 {
 	int err = 0;
-	FiesFile *self = malloc(sizeof(*self));
+	FiesFile *self = u_malloc0(sizeof(*self));
 	if (!self)
 		return NULL;
-	memset(self, 0, sizeof(*self));
 	self->opaque = opaque;
 	self->funcs = funcs;
 	self->filename = strndup(filename, filenamelen);
@@ -108,6 +107,8 @@ FiesFile_close(FiesFile *self)
 		self->funcs->close(self);
 	free(self->filename);
 	free(self->linkdest);
+	free(self->uname);
+	free(self->gname);
 	free(self);
 }
 
@@ -421,12 +422,10 @@ FiesWriter_sendFileHeader(FiesWriter *self,
 static int
 FiesWriter_sendMetaOwner(FiesWriter *self, FiesFile *file, fies_id fileid)
 {
-	if (!file->funcs->get_owner)
-		return 0;
-
-	struct fies_meta_owner data;
-	if (file->funcs->get_owner(file, &data.uid, &data.gid) != 0)
-		return 0;
+	struct fies_meta_owner data = {
+		FIES_LE(file->uid),
+		FIES_LE(file->gid)
+	};
 
 	struct fies_file_meta meta = {
 		FIES_LE(FIES_META_OWNER),
@@ -442,16 +441,13 @@ FiesWriter_sendMetaOwner(FiesWriter *self, FiesFile *file, fies_id fileid)
 static int
 FiesWriter_sendMetaTime(FiesWriter *self, FiesFile *file, fies_id fileid)
 {
-	if (!file->funcs->get_mtime)
-		return 0;
-	struct fies_time time;
-	if (file->funcs->get_mtime(file, &time) != 0)
-		return 0;
-
 	struct fies_file_meta meta = {
 		FIES_LE(FIES_META_TIME),
 		FIES_LE(fileid)
 	};
+	struct fies_time time = file->mtime;
+	SwapLE(time.secs);
+	SwapLE(time.nsecs);
 
 	return FiesWriter_putPacket(self, FIES_PACKET_FILE_META,
 	                            &meta, sizeof(meta),

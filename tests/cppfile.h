@@ -16,8 +16,6 @@ struct File {
 	                            size_t buffer_elements);
 	virtual int     verifyExtent(FiesWriter*, const FiesFile_Extent*);
 	virtual int     getOSFD();
-	virtual int     getOwner(uid_t*, gid_t*);
-	virtual int     getMTime(fies_time *time);
 	virtual int     getDevice(uint32_t *out_maj, uint32_t *out_min);
 	virtual ssize_t listXAttrs(const char **names);
 	virtual void    freeXAttrList(const char *names);

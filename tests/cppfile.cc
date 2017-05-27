@@ -44,20 +44,6 @@ vf_get_os_fd(struct FiesFile *handle)
 }
 
 static int
-vf_get_owner(struct FiesFile *handle, uid_t *uid, gid_t *gid)
-{
-	auto self = reinter<File*>(handle->opaque);
-	return self->getOwner(uid, gid);
-}
-
-static int
-vf_get_mtime(struct FiesFile *handle, fies_time *time)
-{
-	auto self = reinter<File*>(handle->opaque);
-	return self->getMTime(time);
-}
-
-static int
 vf_get_device(struct FiesFile *handle, uint32_t *out_maj, uint32_t *out_min)
 {
 	auto self = reinter<File*>(handle->opaque);
@@ -99,8 +85,6 @@ virt_file_funcs = {
 	vf_next_extents,
 	vf_verify_extent,
 	vf_get_os_fd,
-	vf_get_owner,
-	vf_get_mtime,
 	vf_get_device,
 	vf_list_xattrs,
 	vf_free_xattr_list,
@@ -141,18 +125,6 @@ File::verifyExtent(FiesWriter*, const FiesFile_Extent*)
 
 int
 File::getOSFD()
-{
-	return -ENOTSUP;
-}
-
-int
-File::getOwner(uid_t*, gid_t*)
-{
-	return -ENOTSUP;
-}
-
-int
-File::getMTime(fies_time *time)
 {
 	return -ENOTSUP;
 }

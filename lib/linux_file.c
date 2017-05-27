@@ -31,10 +31,7 @@
 #pragma clang diagnostic ignored "-Wpadded"
 typedef struct {
 	int fd;
-	uid_t uid;
-	gid_t gid;
 	dev_t dev;
-	struct fies_time mtime;
 	struct fiemap fm; // must be the last member
 } FiesOSFile;
 #pragma clang diagnostic pop
@@ -269,23 +266,6 @@ FiesOSFile_os_fd(FiesFile *handle)
 }
 
 static int
-FiesOSFile_owner(FiesFile *handle, uid_t *uid, gid_t *gid)
-{
-	FiesOSFile *self = handle->opaque;
-	*uid = self->uid;
-	*gid = self->gid;
-	return 0;
-}
-
-static int
-FiesOSFile_mtime(FiesFile *handle, struct fies_time *time)
-{
-	FiesOSFile *self = handle->opaque;
-	*time = self->mtime;
-	return 0;
-}
-
-static int
 FiesOSFile_device(FiesFile *handle, uint32_t *out_major, uint32_t *out_minor)
 {
 	FiesOSFile *self = handle->opaque;
@@ -424,8 +404,6 @@ fies_os_file_funcs = {
 	.next_extents    = FiesOSFile_nextExtents,
 	.verify_extent   = FiesOSFile_verifyExtent,
 	.get_os_fd       = FiesOSFile_os_fd,
-	.get_owner       = FiesOSFile_owner,
-	.get_mtime       = FiesOSFile_mtime,
 	.get_device      = FiesOSFile_device,
 	.list_xattrs     = FiesOSFile_list_xattrs,
 	.free_xattr_list = FiesOSFile_free_xattr_list,
@@ -488,11 +466,7 @@ FiesFile_fdopenfull(int fd,
 	memset(self, 0, bufsize);
 #endif
 	self->fd = fd;
-	self->uid = stbuf->st_uid;
-	self->gid = stbuf->st_gid;
 	self->dev = stbuf->st_dev;
-	self->mtime.secs = (fies_secs)stbuf->st_mtim.tv_sec;
-	self->mtime.nsecs = (fies_nsecs)stbuf->st_mtim.tv_nsec;
 	memset(&self->fm, 0, sizeof(self->fm));
 	self->fm.fm_start = 0;
 	self->fm.fm_length = (size_t)stbuf->st_size;
@@ -510,6 +484,11 @@ FiesFile_fdopenfull(int fd,
 		errno = err;
 		return NULL;
 	}
+	file->mtime.secs = (fies_secs)stbuf->st_mtim.tv_sec;
+	file->mtime.nsecs = (fies_nsecs)stbuf->st_mtim.tv_nsec;
+	// FIXME: where do we put uid/gid-by-name support?
+	file->uid = stbuf->st_uid;
+	file->gid = stbuf->st_gid;
 	return file;
 }
 
