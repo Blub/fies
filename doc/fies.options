@@ -172,6 +172,34 @@
 \opt --no-wildcards-match-slash
     Wildcards in patterns do not match slashes. This is the default.
 
+\opt -T, --files-from= FILE
+\short Read names to extract or create from FILE.
+    Read a list of files to add or extract from the archive from *FILE*. Unless
+    modified by another option, the file must contain a newline separated list
+    of files.
+
+\opt --xforming-files-from= FILE
+\only cli
+\short Read a list of transforming file names from FILE.
+\opt --xforming-files-from=, --transforming-files-from= FILE
+\only doc
+\short Read a list of transforming file names from FILE.
+    This is similar to the *-T*/*--files-from* option, with the difference that
+    there are pairs of file names in *FILE*: The first entry is the file to
+    read or extract as with the *-T* option, the second entry is the name to
+    use for the destination.
+
+\opt --null
+\only cli
+\short Files for the files-from options are null-terminated.
+\opt --no-null
+\only cli
+\short Files for the files-from options are newline-terminated.
+\opt --null, --no-null
+\only doc
+    Changes the way lines for the *-T*/*--files-from* option are terminated.
+    If this option is enabled lines are terminated by a null byte.
+
 \opt --warning= WARNING
 \only cli
 \short enable a type of warning
