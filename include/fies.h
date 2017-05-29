@@ -12,7 +12,7 @@
 extern "C" {
 #endif
 
-#define FIES_PACKED __attribute__((packed))
+#define FIES_PACKED __attribute__((__packed__))
 
 /*! \brief Reference to a file in a fiestream. */
 typedef uint32_t fies_id;
