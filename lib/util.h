@@ -38,6 +38,21 @@ u_strfreev(char **v) {
 	free(v);
 }
 
+static inline void
+u_strptrfree(char **v) {
+	free(*v);
+}
+
+static inline char*
+u_strmemdup(const void *src, size_t size) {
+	char *data = malloc(size+1);
+	if (data) {
+		memcpy(data, src, size);
+		data[size] = 0;
+	}
+	return data;
+}
+
 // Endianess:
 #define FIES_BSWAP8(S,X)  (X)
 #define FIES_BSWAP16(S,X) ( (S##int16_t) ( \

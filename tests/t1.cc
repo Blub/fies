@@ -100,9 +100,62 @@ t1()
 	});
 }
 
+static void
+t_filelist_1()
+{
+	MemWriter mwr;
+	ASSERT(mwr);
+
+	auto dev0 = FiesWriter_newDevice(mwr);
+
+	auto Z1 = PhyExt { 0x100000, 0x1000, "z"_exfl };
+	TestFile tf { "/f1", 0x1000, { { extent(0x0000, Z1), 1, 0 } } };
+	CheckFile ef { "/f1", 0x1000, 0644_freg, {
+	                { 0x0000, 0x1000, DataClass::Zero, 1 } } };
+	auto f = newFiesFile(&tf, tf.c_name(), tf.size_, 0644_freg, dev0);
+	ASSERT(f);
+	fieserr(mwr, FiesWriter_writeFile(mwr, f.get()));
+	tf.done();
+
+	struct TestData {
+		std::vector<const char*> files;
+	} data = { { "snapshot1", "snapshot2", "snapshot3" } };
+
+	fieserr(mwr, FiesWriter_snapshots(mwr, f.get(),
+	                                  data.files.data(),
+	                                  data.files.size()));
+
+	struct TestReader : MemReader {
+		TestData& data;
+		TestReader(MemWriter& writer, TestData& d)
+			: MemReader(writer)
+			, data(d)
+		{}
+
+		int snapshots (void *fh, const char **snapshots, size_t count)
+		{
+			(void)fh;
+			ASSERT(data.files.size() == count);
+			for (size_t i = 0;i != count; ++i) {
+				ASSERT(!::strcmp(snapshots[i], data.files[i]));
+			}
+			data.files.clear(); // should only happen once
+			return 0;
+		}
+	};
+
+	TestReader trd(mwr, data);
+	trd.expectFile(new CheckFile(ef));
+	ASSERT(trd);
+	if (!trd.readAll())
+		err("reading failed");
+	ASSERT(!data.files.size());
+}
+
 int
 main()
 {
 	t1();
+	t_filelist_1();
 	return test_errors == 0 ? 0 : 1;
 }

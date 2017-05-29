@@ -22,12 +22,13 @@ typedef struct {
 void   Vector_init(Vector*, size_t entry_size, size_t align);
 void   Vector_clear(Vector*);
 void   Vector_destroy(Vector*);
-void   Vector_push(Vector*, void*);
+void   Vector_push(Vector*, const void*);
 void   Vector_pop(Vector*);
-void   Vector_insert(Vector*, size_t index, void*);
+void   Vector_insert(Vector*, size_t index, const void*);
 size_t Vector_search(Vector*, const void *value, int(*cmp)(const void*));
 void   Vector_remove(Vector*, size_t index, size_t count);
-void   Vector_replace(Vector*, size_t index, void*);
+void   Vector_replace(Vector*, size_t index, const void*);
+void*  Vector_appendUninitialized(Vector*, size_t count);
 
 static inline void
 Vector_set_destructor(Vector *self, Vector_dtor *dtor) {

@@ -155,6 +155,16 @@ vf_close(void *opaque, void *fh)
 	return self->close(fh);
 }
 
+static int
+vf_snapshots(void *opaque,
+             void *fh,
+             const char **snapshots,
+             size_t count)
+{
+	auto self = reinter<Reader*>(opaque);
+	return self->snapshots(fh, snapshots, count);
+}
+
 static void
 vf_finalize(void *opaque)
 {
@@ -180,6 +190,7 @@ cppreader_funcs = {
 	vf_punch_hole,
 	vf_clone,
 	vf_file_done,
+	vf_snapshots,
 	vf_close,
 	vf_finalize,
 };
@@ -334,6 +345,12 @@ Reader::fileDone(void *fh)
 
 int
 Reader::close(void *fh)
+{
+	return -ENOTSUP;
+}
+
+int
+Reader::snapshots(void *fh, const char **snapshots, size_t count)
 {
 	return -ENOTSUP;
 }

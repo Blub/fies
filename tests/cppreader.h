@@ -58,6 +58,9 @@ struct Reader {
 	                            fies_sz  length);
 	virtual int      fileDone  (void *fh);
 	virtual int      close     (void *fh);
+	virtual int      snapshots (void *fh,
+	                            const char **snapshots,
+	                            size_t count);
 	virtual void     finalize  ();
 
 	virtual int gotFlags(uint32_t flags);

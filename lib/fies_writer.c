@@ -582,6 +582,44 @@ FiesWriter_sendFileEnd(FiesWriter *self, fies_id fileid)
 	                            &end, sizeof(end), NULL);
 }
 
+static int
+FiesWriter_sendFileSnapshots(FiesWriter *self,
+                             fies_id fileid,
+                             const char **snapshots,
+                             size_t count)
+{
+	if (count > 0xFFFF)
+		return FiesWriter_setError(self, ERANGE, "too many snapshots");
+
+	Vector data;
+	Vector_init_type(&data, uint8_t);
+	for (size_t i = 0; i != count; ++i) {
+		size_t len = strlen(snapshots[i]);
+		if (len > 0xFFFF) {
+			Vector_destroy(&data);
+			return FiesWriter_setError(self, ENAMETOOLONG,
+			                           "snapshot name too long");
+		}
+
+		struct fies_snapshot_entry *entry;
+		size_t size = sizeof(*entry) + len;
+		entry = Vector_appendUninitialized(&data, size);
+		entry->name_length = (uint16_t)len;
+		memcpy(entry+1, snapshots[i], len);
+	}
+	struct fies_snapshot_list pkt = {
+		.file = FIES_LE(fileid),
+		.count = (uint16_t)FIES_LE(count),
+		.reserved = 0
+	};
+	int rc = FiesWriter_putPacket(self, FIES_PACKET_SNAPSHOT_LIST,
+	                              &pkt, sizeof(pkt),
+	                              Vector_data(&data), Vector_length(&data),
+	                              NULL);
+	Vector_destroy(&data);
+	return rc;
+}
+
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wpadded"
 typedef struct {
@@ -970,6 +1008,16 @@ extern int
 FiesWriter_readRefFile(FiesWriter *self, FiesFile *file)
 {
 	return FiesWriter_writeFileDo(self, file, true);
+}
+
+extern int
+FiesWriter_snapshots(struct FiesWriter *self,
+                     struct FiesFile *file,
+                     const char **snapshots,
+                     size_t count)
+{
+	return FiesWriter_sendFileSnapshots(self, file->fileid,
+	                                    snapshots, count);
 }
 
 extern const char*

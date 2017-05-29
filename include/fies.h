@@ -5,6 +5,7 @@
  * Main header for the fiestream library libfies.
  */
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <sys/uio.h>
 
@@ -173,6 +174,12 @@ struct FiesReader_Funcs {
 	 */
 	int      (*file_done) (void *opaque, void *fh);
 
+	/*! \brief Optional: handle a list of snapshots for a volume. */
+	int      (*snapshots) (void *opaque,
+	                       void *fh,
+	                       const char **snapshots,
+	                       size_t count);
+
 	/*! \brief Called when a file handle is no longer needed and can be
 	 * closed.
 	 */
@@ -247,50 +254,56 @@ struct FiesWriter* FiesWriter_newFull    (const struct FiesWriter_Funcs *funcs,
                                           uint32_t flags);
 
 /*! \brief Delete a FiesWriter instance. */
-void               FiesWriter_delete     (struct FiesWriter *self);
+void        FiesWriter_delete      (struct FiesWriter *self);
 
 /*! \brief Get (and possibly create) the device id for an OS device. */
-int                FiesWriter_getOSDevice(struct FiesWriter *self,
-                                          dev_t node,
-                                          fies_id *id,
-                                          bool create);
+int         FiesWriter_getOSDevice (struct FiesWriter *self,
+                                    dev_t node,
+                                    fies_id *id,
+                                    bool create);
 
 /*! \brief Create another physical device with its own extent map. */
-fies_id            FiesWriter_newDevice  (struct FiesWriter *self);
+fies_id     FiesWriter_newDevice   (struct FiesWriter *self);
 
 /*! \brief Close a device. Mostly useful to reduce memory usage. */
-int                FiesWriter_closeDevice(struct FiesWriter *self, fies_id);
+int         FiesWriter_closeDevice (struct FiesWriter *self, fies_id);
 
 /*! \brief Write a regular file out into the fiestream.
  * \note The file must be a special file or support the \c FIEMAP \c ioctl().
  */
-int                FiesWriter_writeOSFile(struct FiesWriter *self,
-                                          const char *filename,
-                                          unsigned int flags);
+int         FiesWriter_writeOSFile (struct FiesWriter *self,
+                                    const char *filename,
+                                    unsigned int flags);
 
 /*! \brief Write an OS file descriptor into the fiestream. */
-int                FiesWriter_writefd    (struct FiesWriter *self,
-                                          int fd,
-                                          const char *filename,
-                                          unsigned int flags);
+int         FiesWriter_writefd     (struct FiesWriter *self,
+                                    int fd,
+                                    const char *filename,
+                                    unsigned int flags);
 
 /*! \brief Write a custom \ref FiesFile "\c struct \c FiesFile" handle into the
  * fiestream.
  */
-int                FiesWriter_writeFile  (struct FiesWriter *self,
-                                          struct FiesFile *handle);
+int         FiesWriter_writeFile   (struct FiesWriter *self,
+                                    struct FiesFile *handle);
 
 /*! \brief Add a file as reference for COW or incremental updates. */
-int                FiesWriter_readRefFile(struct FiesWriter *self,
-                                          struct FiesFile *handle);
+int         FiesWriter_readRefFile (struct FiesWriter *self,
+                                    struct FiesFile *handle);
+
+/*! \brief Add a list of snapshots referencing a volume file. */
+int         FiesWriter_snapshots   (struct FiesWriter *self,
+                                    struct FiesFile *file,
+                                    const char **snapshots,
+                                    size_t count);
 
 /*! \brief Set an error message, usable by callbacks for convenience. */
-int                FiesWriter_setError   (struct FiesWriter *self,
-                                          int errc,
-                                          const char *msg);
+int         FiesWriter_setError    (struct FiesWriter *self,
+                                    int errc,
+                                    const char *msg);
 
 /*! \brief Retrieve error information, if any. */
-const char*        FiesWriter_getError   (const struct FiesWriter *self);
+const char* FiesWriter_getError   (const struct FiesWriter *self);
 
 /*! @} */
 
@@ -507,12 +520,13 @@ struct fies_header {
 #define FIES_PACKET_HDR_MAG1 'I'
 #define FIES_PACKET_HDR_MAGIC { FIES_PACKET_HDR_MAG0, FIES_PACKET_HDR_MAG1 }
 
-#define FIES_PACKET_INVALID   0
-#define FIES_PACKET_END       1
-#define FIES_PACKET_FILE      2
-#define FIES_PACKET_FILE_META 3
-#define FIES_PACKET_EXTENT    4
-#define FIES_PACKET_FILE_END  5
+#define FIES_PACKET_INVALID       0
+#define FIES_PACKET_END           1
+#define FIES_PACKET_FILE          2
+#define FIES_PACKET_FILE_META     3
+#define FIES_PACKET_EXTENT        4
+#define FIES_PACKET_FILE_END      5
+#define FIES_PACKET_SNAPSHOT_LIST 6
 
 struct fies_packet {
 	char magic[2];
@@ -613,7 +627,7 @@ struct fies_file_meta {
 struct fies_meta_xattr {
 	uint32_t name_length;  /*!< \brief Name length in the data field. */
 	uint32_t value_length; /*!< \brief Value length in the data field. */
-	char data[0];          /*!< \brief Name, nul byte, value. */
+	char data[0];          /*!< \brief Name, null byte, value. */
 };
 #pragma clang diagnostic pop
 
@@ -650,6 +664,26 @@ struct fies_extent {
 
 struct fies_file_end {
 	fies_id file;
+};
+
+struct fies_snapshot_list {
+	fies_id file;
+	uint16_t count;
+	uint16_t reserved;
+	/* data follows */
+};
+
+/* Should the 'reserved' field be used to represent snapshot types? (Eg. ZFS
+ * has bookmarks which can be created like snapshots, but we cannot read them,
+ * so we probably can't use them except as a base for incremental streams.
+ * OTOH it could also have a flag specifying the "current" snapshot, so an
+ * incremental stream could - instead of using the --{no-,}final-snapshot
+ * options, use this file to decide whether to make the snapshot and whether it
+ * should be a snapshot or a bookmark...)
+ */
+struct fies_snapshot_entry {
+	uint16_t         name_length; /*!< \brief Name length in the data. */
+	/* data follows */
 };
 
 #ifdef __cplusplus
@@ -835,6 +869,10 @@ struct fies_file_end {
  * \def FIES_PACKET_FILE_END
  *   \brief A file's data is finished and will only be cloned (read) from now
  *   on.
+ *
+ * \def FIES_PACKET_SNAPSHOT_LIST
+ *   \brief Lists the existing snapshots of a file with their creation
+ *   timestamp.
  */
 
 /*! \struct fies_file_meta

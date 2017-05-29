@@ -1,7 +1,12 @@
 include ../config.mak
 
 FIES_LIB     := libfies.la
-FIES_LIB_SRC := fies_writer.c linux_file.c fies_reader.c vector.c map.c emap.c
+FIES_LIB_SRC := fies_writer.c \
+                linux_file.c \
+                fies_reader.c \
+                vector.c \
+                map.c \
+                emap.c
 FIES_LIB_LO  := $(FIES_LIB_SRC:.c=.lo)
 
 all: $(FIES_LIB)

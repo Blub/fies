@@ -80,6 +80,20 @@ Vector_more(Vector *self)
 	Vector_realloc(self, next_capacity(self->capacity));
 }
 
+static inline size_t
+next_capacity_atleast(size_t cap, size_t min)
+{
+	cap = next_capacity(cap);
+	return cap < min ? min : cap;
+}
+
+static void
+Vector_more_by_atleast(Vector *self, size_t count)
+{
+	size_t min = self->count + count;
+	Vector_realloc(self, next_capacity_atleast(self->capacity, min));
+}
+
 static void
 Vector_less(Vector *self)
 {
@@ -92,7 +106,7 @@ Vector_less(Vector *self)
 }
 
 void
-Vector_push(Vector *self, void *entry)
+Vector_push(Vector *self, const void *entry)
 {
 	if (self->count == self->capacity)
 		Vector_more(self);
@@ -101,7 +115,7 @@ Vector_push(Vector *self, void *entry)
 }
 
 void
-Vector_insert(Vector *self, size_t index, void *entry)
+Vector_insert(Vector *self, size_t index, const void *entry)
 {
 	if (index == self->count) {
 		Vector_push(self, entry);
@@ -117,6 +131,16 @@ Vector_insert(Vector *self, size_t index, void *entry)
 	memmove(after, dest, (self->count - index) * self->slot_size);
 	memcpy(dest, entry, self->entry_size);
 	self->count++;
+}
+
+void*
+Vector_appendUninitialized(Vector *self, size_t count)
+{
+	if (self->count + count > self->capacity)
+		Vector_more_by_atleast(self, count);
+	void *end = Vector_end(self);
+	self->count += count;
+	return end;
 }
 
 void
@@ -147,7 +171,7 @@ Vector_remove(Vector *self, size_t index, size_t count)
 }
 
 void
-Vector_replace(Vector *self, size_t index, void *entry)
+Vector_replace(Vector *self, size_t index, const void *entry)
 {
 	void *p = Vector_at(self, index);
 	if (self->dtor)

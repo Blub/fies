@@ -13,6 +13,7 @@ typedef enum {
 	FR_State_FileMeta_Get,
 	FR_State_FileMeta_Do,
 	FR_State_FileEnd,
+	FR_State_SnapshotList,
 #if 0
 	FR_State_FileClose,
 #endif
@@ -22,6 +23,7 @@ typedef enum {
 	FR_State_Extent_Read,
 	FR_State_Extent_ZeroOut,
 	FR_State_Extent_PunchHole,
+	FR_State_SnapshotList_Read,
 	FR_State_Botched
 } FiesReader_State;
 
@@ -65,6 +67,8 @@ typedef struct FiesReader {
 
 	struct fies_extent extent;
 	fies_sz extent_at;
+	FiesReader_File *snapshot_file;
+	VectorOf(char*) snapshots;
 
 	FiesReader_State state;
 	FiesReader_File *newfile;
@@ -81,6 +85,12 @@ FiesReader_filled(const FiesReader *self) {
 static inline const void*
 FiesReader_data(const FiesReader *self) {
 	return &self->buffer.data[self->buffer.at];
+}
+
+static inline bool
+FiesReader_bufferFull(const FiesReader *self) {
+	return self->buffer.at == 0 &&
+	       self->buffer.filled == self->buffer.capacity;
 }
 
 #endif

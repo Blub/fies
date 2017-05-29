@@ -64,6 +64,9 @@ FiesReader_newFull(const struct FiesReader_Funcs *funcs,
 	              fies_id, NULL,
 	              FiesReader_File*, FiesReader_File_destroy_p);
 
+	Vector_init_type(&self->snapshots, char*);
+	Vector_set_destructor(&self->snapshots, (Vector_dtor*)&u_strptrfree);
+
 	self->buffer.capacity = 128*1024;
 	self->buffer.data = malloc(self->buffer.capacity);
 
@@ -749,6 +752,107 @@ FiesReader_getExtentHeader(FiesReader *self)
 }
 
 static int
+FiesReader_applySnapshotList(FiesReader *self)
+{
+	int rc = 0;
+	if (self->funcs->snapshots) {
+		rc = self->funcs->snapshots(self->opaque,
+		                            self->snapshot_file->opaque,
+		                            Vector_data(&self->snapshots),
+		                            Vector_length(&self->snapshots));
+	}
+	Vector_clear(&self->snapshots);
+	self->snapshot_file = NULL;
+	return rc;
+}
+
+static int
+FiesReader_readSnapshotList(FiesReader *self)
+{
+	const struct fies_snapshot_entry *entry;
+
+	fies_sz remaining = self->extent.length - self->extent_at;
+	if (remaining < sizeof(*entry)+1)
+		FiesReader_throw(self, EINVAL, "bad snapshot list size");
+
+	ssize_t sgot = FiesReader_bufferSome(self, remaining, false);
+	if (sgot < 0)
+		return (int)sgot;
+	size_t got = FiesReader_filled(self);
+	if (!got)
+		FiesReader_throw(self, EFAULT, "buffering failed");
+	if (got < sizeof(*entry))
+		return 0;
+
+	FiesReader_State next_state = FR_State_SnapshotList_Read;
+	if (got > remaining)
+		got = remaining;
+
+	if (!self->funcs->snapshots) {
+		self->extent_at += got;
+		if (self->extent_at == self->extent.length)
+			next_state = FR_State_Begin;
+		FiesReader_eat(self, got, next_state);
+		return 0;
+	}
+
+	entry = FiesReader_data(self);
+	size_t name_length = FIES_LE(entry->name_length);
+	size_t entry_size = sizeof(*entry) + name_length;
+	if (entry_size > got) {
+		// We're in the middle of a name
+		// Snapshot names longer than 128k (our minimum buffer) are
+		// simply not acceptable...
+		if (FiesReader_bufferFull(self))
+			FiesReader_throw(self, ENAMETOOLONG,
+			                 "file list entry name too long");
+		return 0;
+	} else {
+		char *snapname = u_strmemdup(entry+1, name_length);
+		if (!snapname)
+			FiesReader_throw(self, ENOMEM,
+			                 "failed to allocate snapshot name");
+		Vector_push(&self->snapshots, &snapname);
+	}
+
+	// We have read at least one full name:
+	int rc = 0;
+	self->extent_at += entry_size;
+	if (self->extent_at > self->extent.length)
+		FiesReader_throw(self, EINVAL, "oversized snapshot list");
+	if (self->extent_at == self->extent.length) {
+		next_state = FR_State_Begin;
+		rc = FiesReader_applySnapshotList(self);
+	}
+
+	FiesReader_eat(self, entry_size, next_state);
+	if (rc < 0)
+		return rc;
+	return 0;
+}
+
+static int
+FiesReader_getSnapshotList(FiesReader *self)
+{
+	const struct fies_snapshot_list *lst;
+	int rc = FiesReader_bufferAtLeast(self, sizeof(*lst));
+	if (rc < 0)
+		return rc;
+	lst = FiesReader_data(self);
+	const fies_id fileid = FIES_LE(lst->file);
+	// sanity checks:
+	FiesReader_File *existingfile = PMap_get(&self->files, &fileid);
+	if (!existingfile)
+		FiesReader_throw(self, EINVAL,
+		                 "snapshot list for unknown file");
+	self->snapshot_file = existingfile;
+	self->extent_at = 0;
+	self->extent.length = self->pkt_size - sizeof(*lst);
+	FiesReader_eat(self, sizeof(*lst), FR_State_SnapshotList_Read);
+	return FiesReader_readSnapshotList(self);
+}
+
+static int
 FiesReader_readPacket(FiesReader *self)
 {
 	int rc = FiesReader_bufferAtLeast(self, sizeof(struct fies_packet));
@@ -802,6 +906,13 @@ FiesReader_readPacket(FiesReader *self)
 	case FIES_PACKET_EXTENT:
 		self->state = FR_State_Extent_Get;
 		return FiesReader_getExtentHeader(self);
+
+	case FIES_PACKET_SNAPSHOT_LIST:
+		if (self->pkt_size < sizeof(struct fies_snapshot_list))
+			FiesReader_throw(self, EINVAL,
+			                 "Snapshot List packet too large");
+		self->state = FR_State_SnapshotList;
+		return FiesReader_getSnapshotList(self);
 
 	case FIES_PACKET_INVALID:
 	default:
@@ -905,6 +1016,12 @@ FiesReader_iterate(FiesReader *self)
 			break;
 		case FR_State_Extent_PunchHole:
 			rc = FiesReader_punchHole(self);
+			break;
+		case FR_State_SnapshotList:
+			rc = FiesReader_getSnapshotList(self);
+			break;
+		case FR_State_SnapshotList_Read:
+			rc = FiesReader_readSnapshotList(self);
 			break;
 		case FR_State_Botched:
 			FiesReader_throw(self, EFAULT, "FiesReader botched");
