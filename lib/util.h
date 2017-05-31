@@ -15,7 +15,7 @@
 	FIES_ALIGN_DOWN((X)+((A)-1), (A))
 
 // Attributes
-#define FIES_SENTINEL __attribute__((sentinel))
+#define FIES_SENTINEL __attribute__((__sentinel__))
 
 // Allocation
 static inline void*
