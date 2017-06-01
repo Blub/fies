@@ -200,6 +200,13 @@
     Changes the way lines for the *-T*/*--files-from* option are terminated.
     If this option is enabled lines are terminated by a null byte.
 
+\opt --time= STYLE
+\short change the way times are formatted
+    This can be ``none`` to hide times, ``stamp`` to show time stamps in
+    seconds and nanoseconds separated by a dot, ``locale`` (the default) to use
+    the current locale's preferred formatting or one of ``rfc822``,
+    ``rfc2822``.
+
 \opt --warning= WARNING
 \only cli
 \short enable a type of warning

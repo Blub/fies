@@ -53,5 +53,6 @@ typedef struct {
 
 bool opt_is_path_excluded(const char *path, mode_t, bool skipinc, bool head);
 bool opt_is_xattr_excluded(const char *name);
+size_t display_time(char *buf, size_t bufsz, const struct fies_time*);
 
 #endif

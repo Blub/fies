@@ -9,6 +9,8 @@
 #include <string.h>
 #include <getopt.h>
 #include <limits.h>
+#include <time.h>
+#include <inttypes.h>
 
 #include "../lib/vector.h"
 #include "../lib/fies.h"
@@ -71,6 +73,7 @@ usage(FILE *out, int exit_code)
 #define OPT_NO_NULL            (0x1100+'0')
 #define OPT_XFORM_FILES_FROM   (0x1000+'T')
 #define OPT_WARNING            (0x1000+'w')
+#define OPT_TIME               (0x4000+'T')
 
 #define FIES_SHORTOPTS "hvctxrRC:f:s:T:"
 static struct option longopts[] = {
@@ -125,6 +128,7 @@ static struct option longopts[] = {
 	{ "xforming-files-from",required_argument, NULL, OPT_XFORM_FILES_FROM},
 	{ "null",                     no_argument, NULL, OPT_NULL },
 	{ "no-null",                  no_argument, NULL, OPT_NO_NULL },
+	{ "time",               required_argument, NULL, OPT_TIME },
 	{ "warning",            required_argument, NULL, OPT_WARNING },
 	{ "verbose",                  no_argument, NULL, 'v' },
 	{ "quiet",                    no_argument, NULL, 'q' },
@@ -157,6 +161,13 @@ static VectorOf(const char*) opt_xattr_include;
 static VectorOf(Regex*)      opt_xattr_rinclude;
 static bool                  opt_null             = false;
 VectorOf(from_file_t)        opt_files_from_list;
+static enum {
+	TIME_LOCALE,
+	TIME_RFC2822,
+	TIME_RFC822,
+	TIME_STAMP,
+	TIME_NONE
+}                            opt_time = TIME_LOCALE;
 
 static bool option_error = false;
 
@@ -374,6 +385,36 @@ handle_option(int c, int oopt, const char *oarg)
 		Vector_push(&opt_files_from_list, &entry);
 		break;
 	}
+
+	case OPT_TIME:
+		if (strcasecmp(oarg, "none") == 0)
+			opt_time = TIME_NONE;
+		else if (strcasecmp(oarg, "stamp") == 0)
+			opt_time = TIME_STAMP;
+		else if (strcasecmp(oarg, "local") == 0 ||
+		         strcasecmp(oarg, "locale") == 0)
+		{
+			opt_time = TIME_LOCALE;
+		}
+		else if (strcasecmp(oarg, "rfc") == 0 ||
+		         strcasecmp(oarg, "rfc2822") == 0 ||
+		         strcasecmp(oarg, "2822") == 0)
+		{
+			opt_time = TIME_RFC2822;
+		}
+		else if (strcasecmp(oarg, "rfc") == 0 ||
+		         strcasecmp(oarg, "rfc822") == 0 ||
+		         strcasecmp(oarg, "822") == 0)
+		{
+			opt_time = TIME_RFC822;
+		}
+		else {
+			fprintf(stderr, "fies: unrecognized time format: %s\n",
+			        oarg);
+			usage(stderr, EXIT_FAILURE);
+		}
+		break;
+
 	case OPT_WARNING:
 		handle_warning_opt(oarg);
 		break;
@@ -386,6 +427,41 @@ handle_option(int c, int oopt, const char *oarg)
 		fprintf(stderr, "fies: option error\n");
 		usage(stderr, EXIT_FAILURE);
 	}
+}
+
+size_t
+display_time(char *buf, size_t bufsz, const struct fies_time *tm)
+{
+	time_t secs = (time_t)tm->secs;
+	struct tm timedata;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcovered-switch-default"
+	switch (opt_time) {
+	case TIME_NONE:
+		*buf = 0;
+		return 0;
+	case TIME_STAMP: {
+		int rc = snprintf(buf, bufsz,
+		                  "%" PRI_D_FIES_SECS
+		                  ".%" PRI_D_FIES_NSECS,
+		                  tm->secs, tm->nsecs);
+		return rc < 0 ? 0 : (size_t)rc;
+	}
+	case TIME_RFC2822:
+		if (!localtime_r(&secs, &timedata))
+			return 0;
+		return strftime(buf, bufsz, "%a, %d %b %Y %T %z", &timedata);
+	case TIME_RFC822:
+		if (!localtime_r(&secs, &timedata))
+			return 0;
+		return strftime(buf, bufsz, "%a, %d %b %y %T %z", &timedata);
+	default:
+	case TIME_LOCALE:
+		if (!localtime_r(&secs, &timedata))
+			return 0;
+		return strftime(buf, bufsz, "%c", &timedata);
+	};
+#pragma clang diagnostic pop
 }
 
 static bool
