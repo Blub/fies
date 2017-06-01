@@ -33,18 +33,24 @@ typedef uint64_t fies_secs;
 typedef uint32_t fies_nsecs;
 /* 32 bit are sufficient for nanoseconds if we also store seconds */
 
-#define PRI_D_FIES_ID  PRIu32
-#define PRI_X_FIES_ID  PRIx32
-#define PRI_O_FIES_ID  PRIo32
-#define PRI_D_FIES_POS PRIu64
-#define PRI_X_FIES_POS PRIx64
-#define PRI_O_FIES_POS PRIo64
-#define PRI_D_FIES_SZ  PRIu64
-#define PRI_X_FIES_SZ  PRIx64
-#define PRI_O_FIES_SZ  PRIo64
-#define PRI_D_FIES_SSZ PRIi64
-#define PRI_X_FIES_SSZ PRIx64
-#define PRI_O_FIES_SSZ PRIo64
+#define PRI_D_FIES_ID    PRIu32
+#define PRI_X_FIES_ID    PRIx32
+#define PRI_O_FIES_ID    PRIo32
+#define PRI_D_FIES_POS   PRIu64
+#define PRI_X_FIES_POS   PRIx64
+#define PRI_O_FIES_POS   PRIo64
+#define PRI_D_FIES_SZ    PRIu64
+#define PRI_X_FIES_SZ    PRIx64
+#define PRI_O_FIES_SZ    PRIo64
+#define PRI_D_FIES_SSZ   PRIi64
+#define PRI_X_FIES_SSZ   PRIx64
+#define PRI_O_FIES_SSZ   PRIo64
+#define PRI_D_FIES_SECS  PRIu64
+#define PRI_X_FIES_SECS  PRIx64
+#define PRI_O_FIES_SECS  PRIo64
+#define PRI_D_FIES_NSECS PRIu32
+#define PRI_X_FIES_NSECS PRIx32
+#define PRI_O_FIES_NSECS PRIo32
 
 /*! \brief Represents a point in time. */
 struct fies_time {
