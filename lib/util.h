@@ -53,6 +53,15 @@ u_strmemdup(const void *src, size_t size) {
 	return data;
 }
 
+extern size_t fies_mtree_encode(char *dst,
+                                size_t dst_size,
+                                const char *src,
+                                size_t src_len);
+extern size_t fies_mtree_decode(char *dst,
+                                size_t dst_size,
+                                const char *src,
+                                size_t src_len);
+
 // Endianess:
 #define FIES_BSWAP8(S,X)  (X)
 #define FIES_BSWAP16(S,X) ( (S##int16_t) ( \
