@@ -1119,6 +1119,18 @@ list_clone(void *opaque,
 	return 0;
 }
 
+static int
+list_snapshots(void *opaque, void *pfd, const char **list, size_t count)
+{
+	(void)opaque;
+
+	ListFileHandle *file = pfd;
+	printf("snapshots for %s:\n", file->name);
+	for (size_t i = 0; i != count; ++i)
+		printf("\t%s\n", list[i]);
+	return 0;
+}
+
 const struct FiesReader_Funcs
 list_reader_funcs = {
 	.read       = do_read,
@@ -1135,5 +1147,6 @@ list_reader_funcs = {
 	.pwrite     = list_pwrite,
 	.punch_hole = list_punch_hole,
 	.clone      = list_clone,
+	.snapshots  = list_snapshots,
 	.close      = list_close,
 };
