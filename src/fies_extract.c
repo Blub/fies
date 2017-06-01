@@ -861,7 +861,7 @@ typedef struct {
 	uint32_t uid, gid;
 	uint32_t major_id;
 	uint32_t minor_id;
-	time_t   mtime;
+	struct fies_time mtime;
 	bool     has_xattrs;
 	bool     has_acls;
 } ListFileHandle;
@@ -958,10 +958,7 @@ ListFileHandle_show(const ListFileHandle *fh)
 		printf(" %10zu", fh->size);
 
 	char buf[256];
-	struct tm now;
-	if (localtime_r(&fh->mtime, &now) &&
-	    strftime(buf, sizeof(buf), "%c", &now))
-	{
+	if (display_time(buf, sizeof(buf), &fh->mtime)) {
 		printf(" %s %s", buf, fh->name);
 	} else {
 		printf(" ??? %s", fh->name);
@@ -1057,7 +1054,7 @@ list_set_mtime(void *opaque, void *pfd, struct fies_time time)
 {
 	(void)opaque;
 	ListFileHandle *self = pfd;
-	self->mtime = (time_t)time.secs;
+	self->mtime = time;
 	return 0;
 }
 
