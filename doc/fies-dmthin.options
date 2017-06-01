@@ -31,3 +31,10 @@
 \short do not create an incremental stream
     This is the default. All volumes will be included normally.
 
+\opt --snapshot-list= FILE
+\short include a snapshot list from FILE
+    The file must contain one snapshot definition per line. A snapshot
+    definition starts with a timestamp in seconds since the epoch (with
+    optional nanosecond precision), followed by its name up to the end of the
+    line. The name is assumed to be encoded like filenames in to mtree(5) files
+    (similar to mount points in `/proc/mounts`).

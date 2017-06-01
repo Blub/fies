@@ -14,6 +14,7 @@
 
 #include "../../lib/fies.h"
 #include "../../lib/vector.h"
+#include "../../lib/util.h"
 
 #ifdef FIES_MAJOR_MACRO_HEADER
 # include FIES_MAJOR_MACRO_HEADER
@@ -24,11 +25,12 @@
 #include "../regex.h"
 #include "fies_dmthin.h"
 
-static const char           *opt_file        = NULL;
-static long                  opt_uid         = -1;
-static long                  opt_gid         = -1;
+static const char           *opt_file          = NULL;
+static long                  opt_uid           = -1;
+static long                  opt_gid           = -1;
 static VectorOf(RexReplace*) opt_xform;
-static bool                  opt_incremental = false;
+static bool                  opt_incremental   = false;
+static const char           *opt_snapshot_list = NULL;
 
 static bool option_error = false;
 
@@ -47,8 +49,9 @@ usage(FILE *out, int exit_code)
 
 #define OPT_UID              (0x1100+'u')
 #define OPT_GID              (0x1000+'g')
-#define OPT_INCREMENTAL        (0x1100+'i')
-#define OPT_NO_INCREMENTAL     (0x1000+'i')
+#define OPT_INCREMENTAL      (0x1100+'i')
+#define OPT_NO_INCREMENTAL   (0x1000+'i')
+#define OPT_SNAPSHOT_LIST    (0x1000+'L')
 
 static struct option longopts[] = {
 	{ "help",                    no_argument, NULL, 'h' },
@@ -61,6 +64,7 @@ static struct option longopts[] = {
 	{ "incremental",             no_argument, NULL, OPT_INCREMENTAL },
 	{ "noincremental",           no_argument, NULL, OPT_NO_INCREMENTAL },
 	{ "no-incremental",          no_argument, NULL, OPT_NO_INCREMENTAL },
+	{ "snapshot-list",     required_argument, NULL, OPT_SNAPSHOT_LIST },
 	{ NULL, 0, NULL, 0 }
 };
 
@@ -93,6 +97,7 @@ handle_option(int c, int oopt, const char *oarg)
 		break;
 	case OPT_INCREMENTAL:    opt_incremental = true; break;
 	case OPT_NO_INCREMENTAL: opt_incremental = false; break;
+	case OPT_SNAPSHOT_LIST:  opt_snapshot_list = oarg; break;
 	case '?':
 		fprintf(stderr, "fies-dmthin: unrecognized option: %c\n",
 		        oopt);
@@ -526,9 +531,102 @@ writer_writev(void *opaque, const struct iovec *iov, size_t count)
 	return put < 0 ? -errno : put;
 }
 
-static const struct FiesWriter_Funcs writer_funcs = {
+static const struct FiesWriter_Funcs
+writer_funcs = {
 	.writev = writer_writev
 };
+
+static bool
+is_wsp(char c)
+{
+	return c == ' ' || c == '\t' || c == '\r' || c == '\n' ||
+	       c == '\f' || c == '\v';
+}
+
+static char*
+ParseSnapshotLine(const char *line)
+{
+	// Trim front
+	while (is_wsp(*line))
+		++line;
+
+	// skip comments and empty lines
+	if (!*line || *line == '#') {
+		errno = 0;
+		return NULL;
+	}
+
+	// Trim back
+	size_t len = strlen(line);
+	if (len && is_wsp(line[len-1]))
+		--len;
+
+	// decode mtree escaping:
+	size_t size = fies_mtree_decode(NULL, 0, line, len);
+	if (!size) {
+		errno = EINVAL;
+		return NULL;
+	}
+	char *out = malloc(size+1);
+	if (!out) {
+		errno = ENOMEM;
+		return NULL;
+	}
+	fies_mtree_decode(out, size+1, line, len);
+	return out;
+}
+
+static int
+SendSnapshotList(FiesWriter *fies, FiesFile *filehandle, const char *listfile)
+{
+	FILE *fh = fopen(listfile, "rb");
+	if (!fh) {
+		fprintf(stderr, "fies-dmthin: failed to open %s: %s",
+		        listfile, strerror(errno));
+		return -1;
+	}
+
+	Vector snapshots;
+	Vector_init_type(&snapshots, char*);
+	Vector_set_destructor(&snapshots, (Vector_dtor*)&u_strptrfree);
+
+	char *line = NULL;
+	size_t line_alloc = 0;
+
+	int rc = 0;
+
+	size_t lno = 0;
+	while (getline(&line, &line_alloc, fh) != -1) {
+		++lno;
+		char *name = ParseSnapshotLine(line);
+		if (!name) {
+			if (errno)
+				break;
+			continue;
+		}
+		Vector_push(&snapshots, &name);
+		errno = 0;
+	}
+	int saved_errno = errno;
+	free(line);
+	line = NULL;
+	if (saved_errno) {
+		fprintf(stderr, "fies-dmthin: error reading from %s: %s\n",
+		        listfile, strerror(saved_errno));
+		rc = -1;
+		goto out;
+	}
+
+	FiesWriter_snapshots(fies, filehandle,
+	                     Vector_data(&snapshots),
+	                     Vector_length(&snapshots));
+
+out:
+	free(line);
+	fclose(fh);
+	Vector_destroy(&snapshots);
+	return rc;
+}
 
 int
 main(int argc, char **argv)
@@ -586,8 +684,12 @@ main(int argc, char **argv)
 		if (opt_incremental) {
 			opt_incremental = false;
 			err = -FiesWriter_readRefFile(fies, file);
-		} else{
+		} else {
 			err = -FiesWriter_writeFile(fies, file);
+		}
+		if (!err && opt_snapshot_list) {
+			err = -SendSnapshotList(fies, file, opt_snapshot_list);
+			opt_snapshot_list = NULL;
 		}
 		FiesFile_close(file);
 		if (err > 0)
