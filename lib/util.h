@@ -66,6 +66,7 @@ static inline int8_t   i_le8 (int8_t  v)  { return FIES_LITTLE( , 8,  v); }
 static inline int16_t  i_le16(int16_t v)  { return FIES_LITTLE( , 16, v); }
 static inline int32_t  i_le32(int32_t v)  { return FIES_LITTLE( , 32, v); }
 static inline int64_t  i_le64(int64_t v)  { return FIES_LITTLE( , 64, v); }
+static inline void     le_broken(void) {}
 
 #ifdef CONFIG_BIG_ENDIAN
 #  define FIES_LE(X) _Generic((X), \
@@ -84,7 +85,8 @@ static inline int64_t  i_le64(int64_t v)  { return FIES_LITTLE( , 64, v); }
      const int8_t:   i_le8, \
      const int16_t:  i_le16, \
      const int32_t:  i_le32, \
-     const int64_t:  i_le64\
+     const int64_t:  i_le64, \
+     default: le_broken \
      )(X)
 #else
 #  define FIES_LE(X) (X)
