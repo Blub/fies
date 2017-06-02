@@ -654,7 +654,7 @@ add_image(gpointer pname, gpointer pimage, gpointer userdata)
 	}
 
 	// If the image was also listed without a snapshot, add the last state
-	// sa well.
+	// as well.
 	if (image->include_self) {
 		rc = do_cephrbd_add(fies, rbdimg, pool, image, NULL, imgsize,
 		                    previous_snapshot);
