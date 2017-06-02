@@ -34,6 +34,8 @@ static long                  opt_gid      = -1;
 static VectorOf(RexReplace*) opt_xform;
 static const char           *opt_cephconf = NULL;
 static bool                  opt_snapshots = true;
+static const char           *opt_from      = NULL;
+static const char           *opt_to        = NULL;
 
 static bool option_error = false;
 
@@ -59,6 +61,8 @@ usage(FILE *out, int exit_code)
 #define OPT_GID              (0x1000+'g')
 #define OPT_SNAPSHOTS        (0x1100+'s')
 #define OPT_NO_SNAPSHOTS     (0x1000+'s')
+#define OPT_FROM_SNAPSHOT    (0x1000+'F')
+#define OPT_TO_SNAPSHOT      (0x1000+'T')
 
 static struct option longopts[] = {
 	{ "help",                    no_argument, NULL, 'h' },
@@ -73,6 +77,8 @@ static struct option longopts[] = {
 	{ "snapshots",               no_argument, NULL, OPT_SNAPSHOTS },
 	{ "nosnapshots",             no_argument, NULL, OPT_NO_SNAPSHOTS },
 	{ "no-snapshots",            no_argument, NULL, OPT_NO_SNAPSHOTS },
+	{ "from-snapshot",     required_argument, NULL, OPT_FROM_SNAPSHOT },
+	{ "to-snapshot",       required_argument, NULL, OPT_TO_SNAPSHOT },
 
 	{ NULL, 0, NULL, 0 }
 };
@@ -109,6 +115,8 @@ handle_option(int c, int oopt, const char *oarg)
 
 	case OPT_SNAPSHOTS:    opt_snapshots = true; break;
 	case OPT_NO_SNAPSHOTS: opt_snapshots = false; break;
+	case OPT_FROM_SNAPSHOT: opt_from = oarg; break;
+	case OPT_TO_SNAPSHOT:   opt_to = oarg;   break;
 
 	case '?':
 		fprintf(stderr, "fies-rbd: unrecognized option: %c\n",
@@ -289,6 +297,12 @@ cephrbd_add(FiesWriter *fies, const char *imgspec)
 
 	char *at = strchr(imgspec, '@');
 	if (at) {
+		if (opt_from || opt_to) {
+			showerr("fies-rbd: --from/--to require a volume name "
+			        "instead of a snapshot name");
+			goto out;
+		}
+
 		if (at == imgspec) // had no name
 			goto out;
 
@@ -318,7 +332,8 @@ cephrbd_add(FiesWriter *fies, const char *imgspec)
 		g_hash_table_insert(gPools, pool->name, pool);
 	}
 
-	Image *image = Pool_addImage(pool, name, snap == NULL, fies);
+	bool include_image = (snap == NULL && !opt_to);
+	Image *image = Pool_addImage(pool, name, include_image, fies);
 	if (!image)
 		goto out_errno;
 
@@ -488,7 +503,9 @@ do_cephrbd_add(FiesWriter *fies,
                Image *image,
                const char *snapshot,
                size_t size,
-               const char *previous_snapshot)
+               const char *previous_snapshot,
+               const char **snapshot_list,
+               size_t snapshot_count)
 {
 	if (snapshot) {
 		verbose(VERBOSE_FILES, "%s/%s@%s\n",
@@ -534,7 +551,14 @@ do_cephrbd_add(FiesWriter *fies,
 	if (!file)
 		return -errno;
 
-	rc = FiesWriter_writeFile(fies, file);
+	if (snapshot_list) {
+		rc = FiesWriter_readRefFile(fies, file);
+		if (rc == 0)
+			rc = FiesWriter_snapshots(fies, file, snapshot_list,
+			                          snapshot_count);
+	}
+	else
+		rc = FiesWriter_writeFile(fies, file);
 	image->last_file_id = file->fileid;
 	image->lastsize = size;
 	FiesFile_close(file);
@@ -606,43 +630,61 @@ add_image(gpointer pname, gpointer pimage, gpointer userdata)
 		goto out;
 	}
 
-	int desired_count = 0;
-	if (image->include_self) {
-		desired_count = snap_count;
-	} else {
-		// if we don't need the image we need to limit the snapshots
-		// we want to pass to the latest snapshot in the command line,
-		// so find the latest one:
+	int start_index = 0;
+	int desired_count = snap_count;
+	if (opt_from || opt_to || !opt_snapshots) {
+		desired_count = 0;
+		const char *from = opt_from;
+		const char *to = opt_to;
 		for (int i = 0; i != snap_count; ++i) {
-			if (Image_hasSnapshot(image, snaps[i].name))
+			if (from && !strcmp(from, snaps[i].name)) {
+				start_index = i;
+				from = NULL;
+			}
+			if (to && !strcmp(to, snaps[i].name)) {
 				desired_count = i+1;
+				to = NULL;
+			}
+			if (!opt_from && !opt_to &&
+			    Image_hasSnapshot(image, snaps[i].name))
+			{
+				desired_count = i+1;
+			}
 		}
 	}
 
 	const char *previous_snapshot = NULL;
 
-	// Now go through as many snapshots as we may possibly need, if it
-	// was either requested explicitly or -bsnapshots=yes was set, add it.
-	for (int i = 0; i != desired_count; ++i) {
-		if (Image_removeSnapshot(image, snaps[i].name) ||
-		    opt_snapshots)
+	for (int i = start_index; i != desired_count; ++i) {
+		if (!opt_snapshots &&
+		    !Image_removeSnapshot(image, snaps[i].name))
 		{
-			rc = do_cephrbd_add(fies, rbdimg, pool, image,
-			                    snaps[i].name, snaps[i].size,
-			                    previous_snapshot);
-			if (rc < 0) {
-				gStatus.retval = rc;
-				goto out;
-			}
-			previous_snapshot = snaps[i].name;
+			continue;
 		}
+		const char **lst = NULL;
+		if (opt_from && !previous_snapshot) {
+			lst = (const char**)malloc(sizeof(*lst) *
+			                           (size_t)snap_count);
+			for (int k = 0; k != snap_count; ++k)
+				lst[k] = snaps[k].name;
+		}
+		rc = do_cephrbd_add(fies, rbdimg, pool, image,
+		                    snaps[i].name, snaps[i].size,
+		                    previous_snapshot,
+		                    lst, (size_t)snap_count);
+		free(lst);
+		if (rc < 0) {
+			gStatus.retval = rc;
+			goto out;
+		}
+		previous_snapshot = snaps[i].name;
 	}
 
 	// If the image was also listed without a snapshot, add the last state
 	// as well.
-	if (image->include_self) {
+	if (image->include_self && !opt_to) {
 		rc = do_cephrbd_add(fies, rbdimg, pool, image, NULL, imgsize,
-		                    previous_snapshot);
+		                    previous_snapshot, NULL, 0);
 		if (rc < 0) {
 			gStatus.retval = rc;
 			goto out;
@@ -766,6 +808,23 @@ main(int argc, char **argv)
 	if (!argc) {
 		fprintf(stderr, "fies-rbd: missing volume names\n");
 		return 1;
+	}
+
+	if (opt_from && !*opt_from)
+		opt_from = NULL;
+	if (opt_to && !*opt_to)
+		opt_from = NULL;
+
+	if ((opt_from || opt_to) && !opt_snapshots) {
+		showerr("fies-rbd: --from and --to "
+		        "require --snapshots to be set\n");
+		option_error = true;
+	}
+
+	if ((opt_from || opt_to) && argc != 1) {
+		showerr("fies-rbd: --from and --to "
+		        "can only be used with a single volume\n");
+		usage(stderr, EXIT_FAILURE);
 	}
 
 	rc = rados_connect(gRados);
