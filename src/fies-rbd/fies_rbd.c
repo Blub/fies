@@ -130,8 +130,7 @@ typedef struct {
 	GHashTable *snapshots;
 	// device and "virtual" physical offset tracker
 	fies_id device;
-	size_t physoff;
-	size_t lastphys;
+	fies_id last_file_id;
 	size_t lastsize;
 } Image;
 #pragma clang diagnostic pop
@@ -150,8 +149,7 @@ Image_new(const char *name, bool include_self, fies_id device)
 		g_hash_table_new_full(g_str_hash, g_str_equal, NULL, free);
 	self->include_self = include_self;
 	self->device = device;
-	self->physoff = 0;
-	self->lastphys = 0;
+	self->last_file_id = (fies_id)-1;
 	self->lastsize = 0;
 	return self;
 
@@ -364,7 +362,8 @@ RBDFile_extent_cb(const uint64_t off,
 	FiesFile_Extent *ex;
 	if (self->bufat > 0) {
 		ex = &self->buffer[self->bufat-1];
-		if (self->lastend == off &&
+		if (!(ex->flags & FIES_FL_COPY) &&
+		    self->lastend == off &&
 		    (!has_data == !(ex->flags & FIES_FL_DATA)))
 		{
 			ex->length += len;
@@ -382,18 +381,18 @@ RBDFile_extent_cb(const uint64_t off,
 	// Parts rbd-diff-iterate skips are inherited from the parent.
 	if (self->lastend != off) {
 		ex->logical = self->lastend;
-		if (!self->image->physoff ||
+		if (self->image->last_file_id == (fies_id)-1 ||
 		    self->lastend >= self->image->lastsize)
 		{
 			// If we have no parent (or the parent was too small)
 			// we punch holes.
-			ex->flags = FIES_FL_HOLE | FIES_FL_SHARED;
-			ex->physical = self->lastend;
+			ex->flags = FIES_FL_HOLE;
 			ex->length = off - self->lastend;
 		} else {
 			// If we have a parent we clone.
-			ex->flags = FIES_FL_DATA | FIES_FL_SHARED;
-			ex->physical = self->image->lastphys + self->lastend;
+			ex->flags = FIES_FL_DATA | FIES_FL_COPY;
+			ex->source.file = self->image->last_file_id;
+			ex->source.offset = ex->logical;
 			// But the parent might not fit
 			if (self->image->lastsize < handle->filesize) {
 				ex->length = handle->filesize - self->lastend;
@@ -403,8 +402,7 @@ RBDFile_extent_cb(const uint64_t off,
 				ex = &self->buffer[self->bufat++];
 				memset(ex, 0, sizeof(*ex));
 				ex->logical = self->lastend;
-				ex->flags = FIES_FL_HOLE | FIES_FL_SHARED;
-				ex->physical = self->lastend;
+				ex->flags = FIES_FL_HOLE;
 			}
 			ex->length = off - self->lastend;
 		}
@@ -415,19 +413,7 @@ RBDFile_extent_cb(const uint64_t off,
 		memset(ex, 0, sizeof(*ex));
 	}
 
-	// hole/zero extent?
-	if (!has_data) {
-		// FiesWriter punches holes for non-existent extents, but we
-		// need to fill our virtual addresses!
-		ex->flags = FIES_FL_HOLE | FIES_FL_SHARED;
-		ex->physical = self->image->physoff + off;
-		ex->logical = off;
-		ex->length = len;
-		goto done;
-	}
-
-	ex->flags = FIES_FL_DATA | FIES_FL_SHARED;
-	ex->physical = self->image->physoff + off;
+	ex->flags = has_data ? FIES_FL_DATA : FIES_FL_HOLE;
 	ex->logical = off;
 	ex->length = len;
 
@@ -463,17 +449,16 @@ RBDFile_nextExtents(FiesFile *handle,
 	{
 		FiesFile_Extent *ex = &self->buffer[self->bufat++];
 		memset(ex, 0, sizeof(*ex));
-		ex->flags = FIES_FL_SHARED;
 		ex->logical = self->lastend;
 		ex->length = handle->filesize - self->lastend;
-		if (self->image->physoff) {
+		if (self->image->last_file_id != (fies_id)-1) {
 			// by copying from the parent
-			ex->flags |= FIES_FL_DATA;
-			ex->physical = self->image->lastphys + self->lastend;
+			ex->flags = FIES_FL_DATA | FIES_FL_COPY;
+			ex->source.file = self->image->last_file_id;
+			ex->source.offset = ex->logical;
 		} else {
 			// or by creating an explicit hole
-			ex->flags |= FIES_FL_HOLE;
-			ex->physical = self->image->physoff + self->lastend;
+			ex->flags = FIES_FL_HOLE;
 		}
 	}
 	return (ssize_t)self->bufat;
@@ -550,10 +535,10 @@ do_cephrbd_add(FiesWriter *fies,
 		return -errno;
 
 	rc = FiesWriter_writeFile(fies, file);
-	FiesFile_close(file);
-	image->lastphys = image->physoff;
+	image->last_file_id = file->fileid;
 	image->lastsize = size;
-	image->physoff += size;
+	FiesFile_close(file);
+
 	return rc;
 }
 
