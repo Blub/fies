@@ -435,6 +435,14 @@ bool fies_mode_to_stat  (uint32_t fiesmode, mode_t *statmode);
 /*! \brief Convert \c fstat() file modes to \c FIES_M_* compatible ones. */
 bool fies_mode_from_stat(mode_t   statmode, uint32_t *fiesmode);
 
+/*! \brief A \c fies_extent with the \c FIES_FL_COPY flag set is followed by a
+ *  a source specification to clone from.
+ */
+struct fies_source {
+	fies_id file; /*!< File ID, \see fies_file . */
+	fies_pos offset FIES_PACKED; /*!< Extent offset in the source file. */
+};
+
 /*! \brief Describes a file extent so the \c FiesWriter knows what to do
  * with it, created by the \ref FiesFile callbacks.
  */
@@ -450,7 +458,8 @@ struct FiesFile_Extent {
 	/*! \brief Flags describing the type of extent. */
 	uint32_t flags;
 
-	uint32_t reserved0;
+	/*! \brief File ID in case of explicit FIES_FL_COPY extents. */
+	struct fies_source source;
 };
 
 /*! @} */
@@ -638,14 +647,6 @@ struct fies_extent {
 #define FIES_FL_COPY        0x00000008
 
 #define FIES_FL_SHARED      0x00000100
-
-/*! \brief A \c fies_extent with the \c FIES_FL_COPY flag set is followed by a
- *  a source specification to clone from.
- */
-struct fies_source {
-	fies_id file; /*!< File ID, \see fies_file . */
-	fies_pos offset FIES_PACKED; /*!< Extent offset in the source file. */
-};
 
 struct fies_file_end {
 	fies_id file;

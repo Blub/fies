@@ -49,7 +49,7 @@ struct PhyExt {
 inline constexpr FiesFile_Extent
 extent(fies_pos log, fies_pos phy, fies_sz len, uint32_t flags, fies_pos dev=0)
 {
-	return { dev, log, phy, len, flags, 0 };
+	return { dev, log, phy, len, flags, {cast<fies_id>(-1), 0} };
 }
 
 inline constexpr FiesFile_Extent

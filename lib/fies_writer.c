@@ -718,22 +718,28 @@ FiesWriter_sendExtent(FiesWriter *self,
 		self, file, fileid, ex, ref_file
 	};
 
-	if (!(ex->flags & FIES_FL_SHARED)) {
-		// This extent is not marked as shared, so we don't even try.
-		int rc = FiesWriter_sendExtent_forNew(&cap, ex->logical,
-		                                      ex->length);
-		if (rc < 0)
-			return (ssize_t)rc;
-		return (ssize_t)ex->length;
+	int rc;
+	if (ex->flags & FIES_FL_COPY) {
+		// User requested to explicitly copy from a file
+		rc = FiesWriter_sendExtent_forAvail(&cap, ex->logical,
+		                                    ex->length,
+		                                    ex->source.file,
+		                                    ex->source.offset);
 	}
-
-	int rc = FiesEMap_add(device->extents,
-	                      ex->device,
-	                      ex->physical, ex->logical, ex->length,
-	                      fileid,
-	                      &FiesWriter_sendExtent_forNew,
-	                      &FiesWriter_sendExtent_forAvail,
-	                      &cap);
+	else if (!(ex->flags & FIES_FL_SHARED)) {
+		// This extent is not marked as shared, so we don't even try.
+		rc = FiesWriter_sendExtent_forNew(&cap, ex->logical,
+		                                  ex->length);
+	}
+	else {
+		rc = FiesEMap_add(device->extents,
+		                  ex->device,
+		                  ex->physical, ex->logical, ex->length,
+		                  fileid,
+		                  &FiesWriter_sendExtent_forNew,
+		                  &FiesWriter_sendExtent_forAvail,
+		                  &cap);
+	}
 	if (rc < 0)
 		return rc;
 	return (ssize_t)ex->length;
