@@ -869,7 +869,7 @@ FiesReader_readPacket(FiesReader *self)
 	self->pkt_type = FIES_LE(pkt->type);
 	self->pkt_size = FIES_LE(pkt->size) - sizeof(*pkt);
 
-	if (pkt->size < sizeof(*pkt))
+	if (FIES_LE(pkt->size) < sizeof(*pkt))
 		FiesReader_throw(self, EINVAL, "Invalid packet size");
 
 	FiesReader_eat(self, sizeof(*pkt), FR_State_Botched);
