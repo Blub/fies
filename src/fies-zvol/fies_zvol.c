@@ -6,6 +6,9 @@
 #pragma clang diagnostic ignored "-Wunused-parameter"
 #pragma clang diagnostic ignored "-Wmacro-redefined"
 #pragma clang diagnostic ignored "-Wreserved-id-macro"
+#pragma clang diagnostic ignored "-Wformat-nonliteral"
+#pragma clang diagnostic ignored "-Wshorten-64-to-32"
+#pragma clang diagnostic ignored "-Wmissing-variable-declarations"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -394,7 +397,7 @@ ZVOL_mapLevel(ZVOL *self,
 	unsigned long bpcount = BP_GET_LSIZE(bp) >> SPA_BLKPTRSHIFT;
 	long a = 0, b = (long)bpcount;
 	if (!b) {
-		arc_buf_remove_ref(buf, &buf);
+		arc_buf_destroy(buf, &buf);
 		return 0;
 	}
 
@@ -430,7 +433,7 @@ ZVOL_mapLevel(ZVOL *self,
 		if (err)
 			break;
 	}
-	arc_buf_remove_ref(buf, &buf);
+	arc_buf_destroy(buf, &buf);
 	return err;
 }
 
