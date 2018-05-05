@@ -196,9 +196,13 @@ FiesWriter_writev(FiesWriter *self,
 }
 
 static fies_ssz
-FiesWriter_copy(FiesWriter *self, FiesFile *infd, fies_pos off, fies_sz size)
+FiesWriter_copy(FiesWriter *self,
+                FiesFile *infd,
+                fies_pos logical,
+                fies_sz size,
+                fies_pos physical)
 {
-	if (!infd->funcs->pread)
+	if (!(infd->funcs->pread || infd->funcs->preadp))
 		return -ENOTSUP;
 
 	if (!self->sendbuffer) {
@@ -211,11 +215,18 @@ FiesWriter_copy(FiesWriter *self, FiesFile *infd, fies_pos off, fies_sz size)
 		fies_sz step = size;
 		if (step > self->sendcapacity)
 			step = self->sendcapacity;
-		fies_ssz got = infd->funcs->pread(infd, self->sendbuffer, step,
-		                                  off);
+		fies_ssz got;
+		if (infd->funcs->preadp) {
+			got = infd->funcs->preadp(infd, self->sendbuffer, step,
+		                                  logical, physical);
+		} else {
+			got = infd->funcs->pread(infd, self->sendbuffer, step,
+		                                 logical);
+		}
 		if (got < 0)
 			return got;
-		off += (fies_sz)got;
+		logical += (fies_sz)got;
+		physical += (fies_sz)got;
 		// short writes error in FiesWriter_send()
 		if ((fies_sz)got != step)
 			return (fies_ssz)total;
@@ -237,13 +248,17 @@ FiesWriter_copy(FiesWriter *self, FiesFile *infd, fies_pos off, fies_sz size)
 }
 
 static int
-FiesWriter_send(FiesWriter *self, FiesFile *infd, fies_pos off, fies_sz size)
+FiesWriter_send(FiesWriter *self,
+                FiesFile *infd,
+                fies_pos logical,
+                fies_sz size,
+                fies_pos physical)
 {
 	fies_ssz put = -ENOTSUP;
 	if (self->funcs->sendfile)
-		put = self->funcs->sendfile(self->opaque, infd, off, size);
+		put = self->funcs->sendfile(self->opaque, infd, logical, size);
 	if (put == -ENOTSUP || put == -EOPNOTSUPP)
-		put = FiesWriter_copy(self, infd, off, size);
+		put = FiesWriter_copy(self, infd, logical, size, physical);
 	if (put < 0)
 		return (int)put;
 	if ((fies_sz)put != size)
@@ -632,7 +647,10 @@ typedef struct {
 #pragma clang diagnostic pop
 
 static int
-FiesWriter_sendExtent_forNew(void *opaque, fies_pos pos, fies_sz len)
+FiesWriter_sendExtent_forNew(void *opaque,
+                             fies_pos logical,
+                             fies_sz len,
+                             fies_pos physical)
 {
 	FiesWriter_sendExtent_capture *cap = opaque;
 	if (cap->ref_file)
@@ -663,7 +681,7 @@ FiesWriter_sendExtent_forNew(void *opaque, fies_pos pos, fies_sz len)
 	struct fies_extent fex = {
 		FIES_LE(cap->fileid),
 		FIES_LE(flags),
-		FIES_LE(pos),
+		FIES_LE(logical),
 		FIES_LE(len)
 	};
 
@@ -686,7 +704,7 @@ FiesWriter_sendExtent_forNew(void *opaque, fies_pos pos, fies_sz len)
 	int rc = FiesWriter_writev(cap->self, iov, 2, sizeof(pkt)+sizeof(fex));
 	if (rc < 0)
 		return rc;
-	rc = FiesWriter_send(cap->self, cap->file, pos, len);
+	rc = FiesWriter_send(cap->self, cap->file, logical, len, physical);
 
 	if (rc < 0)
 		return rc;
@@ -767,7 +785,7 @@ FiesWriter_sendExtent(FiesWriter *self,
 	else if (!(ex->flags & FIES_FL_SHARED)) {
 		// This extent is not marked as shared, so we don't even try.
 		rc = FiesWriter_sendExtent_forNew(&cap, ex->logical,
-		                                  ex->length);
+		                                  ex->length, ex->physical);
 	}
 	else {
 		rc = FiesEMap_add(device->extents,

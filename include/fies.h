@@ -327,6 +327,12 @@ struct FiesFile_Funcs {
 	                           void *buffer,
 	                           size_t length,
 	                           fies_pos offset);
+	/*! \brief Read data from a file from a specific offset. */
+	ssize_t (*preadp)         (struct FiesFile *handle,
+	                           void *buffer,
+	                           size_t length,
+	                           fies_pos offset,
+	                           fies_pos physical_offset);
 	/*! \brief Close a file which is no longer needed. */
 	void    (*close)          (struct FiesFile *handle);
 
@@ -786,10 +792,12 @@ struct fies_snapshot_entry {
  *   \var FiesFile_Funcs::pread
  *     Used if the sendfile callback is not available or returns \c -ENOTSUP .
  *
- *     \param handle Pointer to a \ref FiesFile "\c FiesFile".
- *     \param buffer Buffer to write the data to.
- *     \param length Amount of data to read.
- *     \param offset Position to start reading from.
+ *     \param handle   Pointer to a \ref FiesFile "\c FiesFile".
+ *     \param buffer   Buffer to write the data to.
+ *     \param length   Amount of data to read.
+ *     \param offset   Position to start reading from.
+ *     \param physical Physical position the offset was mapped to via
+ *         next_extents.
  *
  *   \var FiesFile_Funcs::close
  *     \param handle Pointer to a \ref FiesFile "\c FiesFile".

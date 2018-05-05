@@ -38,7 +38,8 @@ typedef struct {
 FiesEMap* FiesEMap_new(void);
 void FiesEMap_delete(FiesEMap*);
 void FiesEMap_clear(FiesEMap*);
-typedef int FiesEMap_for_new(void *opaque, fies_pos pos, fies_sz len);
+typedef int FiesEMap_for_new(void *opaque, fies_pos pos, fies_sz len,
+                             fies_pos physical);
 typedef int FiesEMap_for_avail(void *opaque, fies_pos pos, fies_sz len,
                                fies_id file, fies_pos logical);
 int FiesEMap_add(FiesEMap*,

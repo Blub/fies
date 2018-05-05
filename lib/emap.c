@@ -128,7 +128,7 @@ FiesEMap_add(FiesEMap *self,
 
 	size_t index = ExtentList_find(device, in_physical);
 	if (index >= Vector_length(&device->extents)) {
-		int rc = for_new(opaque, ex.logical, ex.length);
+		int rc = for_new(opaque, ex.logical, ex.length, ex.physical);
 		if (rc < 0)
 			return rc;
 		Vector_push(&device->extents, &ex);
@@ -139,7 +139,8 @@ FiesEMap_add(FiesEMap *self,
 		const FiesEMapExtent *it = Vector_at(&device->extents, index);
 		if ((ex.physical+ex.length) <= it->physical) {
 			// nearest extent doesn't overlap
-			int rc = for_new(opaque, ex.logical, ex.length);
+			int rc = for_new(opaque, ex.logical, ex.length,
+			                 ex.physical);
 			if (rc < 0)
 				return rc;
 			Vector_insert(&device->extents, index, &ex);
@@ -148,7 +149,7 @@ FiesEMap_add(FiesEMap *self,
 
 		if (ex.physical < it->physical) {
 			fies_pos len = it->physical - ex.physical;
-			int rc = for_new(opaque, ex.logical, len);
+			int rc = for_new(opaque, ex.logical, len, ex.physical);
 			if (rc < 0)
 				return rc;
 			FiesEMapExtent front = {
@@ -182,7 +183,7 @@ FiesEMap_add(FiesEMap *self,
 		++index;
 	}
 	assert(ex.length);
-	int rc = for_new(opaque, ex.logical, ex.length);
+	int rc = for_new(opaque, ex.logical, ex.length, ex.physical);
 	if (rc < 0)
 		return rc;
 	Vector_push(&device->extents, &ex);
