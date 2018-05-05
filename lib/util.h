@@ -14,8 +14,21 @@
 #define FIES_ALIGN_UP(X, A) \
 	FIES_ALIGN_DOWN((X)+((A)-1), (A))
 
+#ifndef __has_c_attribute
+#  define __has_c_attribute(x) 0
+#endif
+
 // Attributes
 #define FIES_SENTINEL __attribute__((__sentinel__))
+#if __has_c_attribute(fallthrough)
+#  define FIES_FALLTHROUGH [[fallthrough]]
+#elif __GNUC__ >= 7
+#  define FIES_FALLTHROUGH __attribute__((fallthrough))
+#elif defined(__clang__)
+#  define FIES_FALLTHROUGH
+#else
+#  define FIES_FALLTHROUGH
+#endif
 
 // Allocation
 static inline void*

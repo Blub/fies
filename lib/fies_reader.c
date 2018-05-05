@@ -412,6 +412,7 @@ FiesReader_handleFileMeta(FiesReader *self)
 	default:
 		if (meta.type >= FIES_META_CUSTOM)
 			goto done;
+		FIES_FALLTHROUGH;
 	case FIES_META_INVALID:
 		FiesReader_throw(self, EINVAL, "bad meta packet");
 
@@ -1008,7 +1009,7 @@ FiesReader_iterate(FiesReader *self)
 			rc = FiesReader_getExtentHeader(self);
 			if (rc < 0)
 				return rc;
-			//[[clang::fallthrough]];
+			FIES_FALLTHROUGH;
 		case FR_State_Extent_Start:
 			rc = FiesReader_startExtent(self);
 			break;

@@ -422,9 +422,9 @@ multiply_size(unsigned long long *size, const char *suffix)
 	switch (*suffix) {
 		default:
 			return -1;
-		case 't': case 'T': *size *= 1024;
-		case 'g': case 'G': *size *= 1024;
-		case 'r': case 'M': *size *= 1024;
+		case 't': case 'T': *size *= 1024; FIES_FALLTHROUGH;
+		case 'g': case 'G': *size *= 1024; FIES_FALLTHROUGH;
+		case 'r': case 'M': *size *= 1024; FIES_FALLTHROUGH;
 		case 'k': case 'K': *size *= 1024;
 			return 1;
 		case 0: return 0;
