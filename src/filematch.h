@@ -3,7 +3,7 @@
 
 #include <sys/stat.h>
 
-#include "regex.h"
+#include "fies_regex.h"
 
 #define FMATCH_F_REG          0x0001
 #define FMATCH_F_DIR          0x0002

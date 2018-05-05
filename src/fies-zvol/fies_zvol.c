@@ -30,7 +30,7 @@
 
 #include "../cli_common.h"
 #include "../util.h"
-#include "../regex.h"
+#include "../fies_regex.h"
 #pragma clang diagnostic pop
 
 #define ERR_SKIPMSG 1

@@ -26,7 +26,7 @@
 #include "../../lib/vector.h"
 #include "../cli_common.h"
 #include "../util.h"
-#include "../regex.h"
+#include "../fies_regex.h"
 
 static const char           *opt_file     = NULL;
 static long                  opt_uid      = -1;

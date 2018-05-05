@@ -17,7 +17,7 @@
 
 #include "cli_common.h"
 #include "util.h"
-#include "regex.h"
+#include "fies_regex.h"
 #include "filematch.h"
 #include "fies_cli.h"
 

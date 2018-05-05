@@ -16,7 +16,7 @@
 
 #include "cli_common.h"
 #include "util.h"
-#include "regex.h"
+#include "fies_regex.h"
 #include "fies_cli.h"
 
 #pragma clang diagnostic push

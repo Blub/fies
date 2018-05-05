@@ -18,7 +18,7 @@
 #include "../../lib/vector.h"
 #include "../cli_common.h"
 #include "../util.h"
-#include "../regex.h"
+#include "../fies_regex.h"
 #include "../filematch.h"
 
 static const char           *opt_file    = NULL;

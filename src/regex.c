@@ -11,7 +11,7 @@
 #include "../lib/vector.h"
 #include "../lib/util.h"
 
-#include "regex.h"
+#include "fies_regex.h"
 #include "util.h"
 
 struct Regex {

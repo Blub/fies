@@ -7,7 +7,7 @@
 #include "../lib/vector.h"
 #include "cli_common.h"
 #include "filematch.h"
-#include "regex.h"
+#include "fies_regex.h"
 
 Common common;
 

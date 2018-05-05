@@ -23,7 +23,7 @@
 
 #include "../cli_common.h"
 #include "../util.h"
-#include "../regex.h"
+#include "../fies_regex.h"
 #include "fies_dmthin.h"
 
 static const char           *opt_file            = NULL;
