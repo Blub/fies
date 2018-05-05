@@ -43,17 +43,11 @@
 \short dmthin data device for raw access
     Path to the dmthin raw data device. This can be used when volumes cannot be
     activated via lvchange anymore.
-    This option requires ``--metadata-device`` and ``--chunk-size`` to be set.
+    This option requires ``--metadata-device``.
 
 \opt --metadata-device= FILE
 \short dmthin meta data device
     Path to the dmthin metadata device.
     Path to the dmthin raw data device. This can be used when volumes cannot be
     activated via lvchange anymore.
-    This option requires ``--data-device`` and ``--chunk-size`` to be set.
-
-\opt --chunk-size= BYTES
-\short allocation chunk size
-    Specifies the allocation chunk size used in the data device.
-    This option is only used when ``--data-device`` and ``--metadata-device``
-    are set.
+    This option requires ``--data-device``.

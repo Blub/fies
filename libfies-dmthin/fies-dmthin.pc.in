@@ -1,0 +1,11 @@
+prefix=@PREFIX@
+bindir=@BINDIR@
+libdir=@LIBDIR@
+includedir=@INCLUDEDIR@
+
+Name: fies-dmthin
+Description: fies-dmthin - dmthin access library
+Version: @PACKAGE_VERSION@
+URL: none
+Libs: -L${libdir} -lfies-dmthin
+Cflags: -I${includedir}

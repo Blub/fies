@@ -11,6 +11,6 @@ dmthin_options_dep = declare_dependency(sources : dmthin_options_h)
 dmthin = executable(
 	'fies-dmthin',
 	[dmthin_sources],
-	link_with : [libcommon, libfies],
+	link_with : [libcommon, libfies, libfies_dmthin],
 	dependencies : [dmthin_options_dep, libglib2, libdevmapper],
 	install : true)

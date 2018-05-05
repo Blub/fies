@@ -34,7 +34,6 @@ static bool                  opt_incremental     = false;
 static const char           *opt_snapshot_list   = NULL;
 static const char           *opt_data_device     = NULL;
 static const char           *opt_metadata_device = NULL;
-static size_t                opt_data_chunksize  = 0;
 
 static bool option_error = false;
 
@@ -58,7 +57,6 @@ usage(FILE *out, int exit_code)
 #define OPT_SNAPSHOT_LIST    (0x1000+'L')
 #define OPT_DATA_DEVICE      (0x1000+'d')
 #define OPT_METADATA_DEVICE  (0x1000+'m')
-#define OPT_DATA_CHUNKSIZE   (0x1000+'s')
 
 static struct option longopts[] = {
 	{ "help",                    no_argument, NULL, 'h' },
@@ -74,7 +72,6 @@ static struct option longopts[] = {
 	{ "snapshot-list",     required_argument, NULL, OPT_SNAPSHOT_LIST },
 	{ "data-device",       required_argument, NULL, OPT_DATA_DEVICE },
 	{ "metadata-device",   required_argument, NULL, OPT_METADATA_DEVICE },
-	{ "chunk-size",        required_argument, NULL, OPT_DATA_CHUNKSIZE },
 	{ NULL, 0, NULL, 0 }
 };
 
@@ -110,20 +107,6 @@ handle_option(int c, int oopt, const char *oarg)
 	case OPT_SNAPSHOT_LIST:   opt_snapshot_list = oarg; break;
 	case OPT_DATA_DEVICE:     opt_data_device = oarg; break;
 	case OPT_METADATA_DEVICE: opt_metadata_device = oarg; break;
-	case OPT_DATA_CHUNKSIZE:
-	{
-		long size = -1;
-		if (!arg_stol(oarg, &size, "--chunk-size", "fies-dmthin"))
-			option_error = true;
-		opt_data_chunksize = (size_t)size;
-		if (opt_data_chunksize % 512) {
-			fprintf(stderr, "fies-dmthin: bad chunk size: %lu, "
-			        "chunk size must be a multiple of 512\n",
-			        opt_data_chunksize);
-			option_error = true;
-		}
-		break;
-	}
 	case '?':
 		fprintf(stderr, "fies-dmthin: unrecognized option: %c\n",
 		        oopt);
@@ -482,7 +465,7 @@ DMThinVolume_open(const char *volume_or_device,
 	// iff they're on the same thin pool.
 	self->meta = ThinMetaTable_addPool(thin_metadevs,
 	                                   tmppoolname,
-	                                   0, writer);
+	                                   writer);
 	saved_errno = errno;
 	free(tmppoolname);
 	errno = saved_errno;
@@ -949,8 +932,8 @@ main(int argc, char **argv)
 
 	if (opt_metadata_device) {
 		assert(opt_data_device);
-		gRawMetaDevice = ThinMeta_new(opt_metadata_device, "<pool>", 0,
-		                 opt_data_chunksize/512, fies, true);
+		gRawMetaDevice = ThinMeta_new(opt_metadata_device, "<pool>",
+		                 fies, true);
 		if (!gRawMetaDevice) {
 			fprintf(stderr,
 			    "fies-dmthin: failed to open metadata device\n");

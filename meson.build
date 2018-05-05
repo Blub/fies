@@ -9,7 +9,7 @@ project(
 	)
 
 libfies_version = '0.1.0'
-libdmthin_version = '0.1.0'
+libfies_dmthin_version = '0.1.0'
 
 add_global_arguments('-D_GNU_SOURCE', language : 'c')
 
@@ -158,4 +158,5 @@ add_project_arguments('-include', 'config.h', language : 'c')
 subdir('doc')
 subdir('include')
 subdir('lib')
+subdir('libfies-dmthin')
 subdir('src')
