@@ -7,22 +7,44 @@ use Text::Wrap ();
 
 our $makedepends;
 
-sub wrap {
+sub openfile($$$) {
+	my ($includes, $mode, $path) = @_;
+	my $fh;
+	if ($path =~ m@^/@) {
+		open($fh, $mode, $path)
+			or die "failed to open $path: $!\n";
+		return ($fh, dirname($path), $path);
+	}
+	for my $dir (reverse @$includes) {
+		next if !defined $dir;
+		my $p = "$dir/$path";
+		if (open(my $fh, $mode, $p)) {
+			my $addinc = undef;
+			if ($path =~ m@/@) {
+				$addinc = "$p/".dirname($path);
+			}
+			return ($fh, $addinc, $p);
+		}
+	}
+	die "failed to open $path: $!\n";
+}
+
+sub __wrap {
 	local $Text::Wrap::huge = 'wrap';
 	local $Text::Wrap::columns = shift;
 	local $Text::Wrap::unexpand = 0;
 	return Text::Wrap::wrap(@_);
 }
 
-sub option_parse_opt($) {
+sub __option_parse_opt($) {
 	my ($opt) = @_;
 	my ($opts, $arg) = ($opt =~ /^\s*(\S+(?:\s*,\s*\S+)*)\s*(\w+)?\s*$/);
 	die "failed to parse option: $opt\n" if !$opts;
 	return ([split(/\s*,\s*/, $opts)], $arg);
 }
 
-sub option_parse($) {
-	my ($fh) = @_;
+sub __option_parse($$) {
+	my ($include_dirs, $fh) = @_;
 	my $data = [];
 
 	my @fhstack;
@@ -59,14 +81,15 @@ sub option_parse($) {
 		chomp $line;
 		if ($line =~ /^\\opt\s+(.+)$/) {
 			$done->();
-			my ($opts, $arg) = option_parse_opt($1);
+			my ($opts, $arg) = __option_parse_opt($1);
 			$cur->{opts} = $opts;
 			$cur->{arg} = $arg if defined($arg);
 		} elsif ($line =~ /^\\include\s+(\S+)\s*$/) {
 			my $file = $1;
-			open(my $incfh, '<', $file)
-				or die "failed to include $file: $!\n";
+			my ($incfh, $addinc) =
+			    openfile($include_dirs, '<', $file);
 			push @fhstack, $fh;
+			push @$include_dirs, $addinc;
 			$fh = $incfh;
 		} elsif ($line =~ /^\\only(?:\s+(\w+))?\s*$/) {
 			$cur->{only} = $1 // 'auto';
@@ -91,6 +114,7 @@ sub option_parse($) {
 	}
 	if (@fhstack) {
 		close($fh);
+		pop @$include_dirs;
 		$fh = pop @fhstack;
 		goto nextfh;
 	}
@@ -115,7 +139,7 @@ sub option_display_rst_entry($) {
 
 	if (defined(my $long = $entry->{long})) {
 		$text .= $long."\n";
-		#return(wrap(80, '    ', '    ', $long), "\n");
+		#return(__wrap(80, '    ', '    ', $long), "\n");
 	}
 
 	return $text;
@@ -147,7 +171,7 @@ sub option_display_c_entry($$) {
 	my $firstindent = "  $optstring "
 	                . (' ' x ($longest - length($optstring)));
 	my $subindent = ' ' x length($firstindent);
-	return wrap(74, $firstindent, $subindent, $entry->{short})."\n";
+	return __wrap(74, $firstindent, $subindent, $entry->{short})."\n";
 }
 
 sub option_display_c {
@@ -180,24 +204,30 @@ my %option_formatter = (
 	c => \&Sections::option_display_c
 );
 
-sub option_format($$$) {
-	my ($fmtname, $infd, $outfd) = @_;
+sub option_format($$$$) {
+	my ($include_dirs, $fmtname, $infd, $outfd) = @_;
 	my $fmt = $option_formatter{$fmtname};
 	die "unknown option formatter: $fmtname\n" if !$fmt;
-	my $data = option_parse($infd);
+	my $data = __option_parse($include_dirs, $infd);
 	$fmt->($outfd, $data);
 }
 
-sub sections_pipe($$) {
-	my ($infd, $outfd) = @_;
+sub sections_pipe($$$) {
+	my ($include_dirs, $infd, $outfd) = @_;
 	while (defined(my $line = <$infd>)) {
 		if ($line =~ /\\OPTIONS (\w+) ([a-zA-Z0-9_\-.]+)\s*$/) {
 			my $incfile = $2;
-			print {$makedepends->[0]} "$makedepends->[1]: $incfile\n" if defined $makedepends;
-			open(my $ofd, '<', $incfile)
-				or die "failed to open $incfile: $!\n";
-			option_format($1, $ofd, $outfd);
+			my ($ofd, $addinc, $realpath) =
+			    openfile($include_dirs, '<', $incfile);
+			print {$makedepends->[0]}
+			    "$makedepends->[1]: $realpath\n"
+			    if defined $makedepends;
+			push @$include_dirs, $addinc;
+			eval { option_format($include_dirs, $1, $ofd, $outfd) };
+			my $err = $@;
+			pop @$include_dirs;
 			close($ofd);
+			die $err if $err;
 		} else {
 			print {$outfd} $line;
 		}

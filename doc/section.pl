@@ -3,6 +3,7 @@
 use strict;
 use warnings;
 
+use File::Basename qw(dirname);
 use Sections;
 
 sub usage() {
@@ -15,6 +16,8 @@ EOF
 }
 
 my $cleanup;
+
+my @include_dirs = ('.');
 
 my %cmds = (
 'format-options' => sub {
@@ -31,9 +34,10 @@ my %cmds = (
 	my $type = shift @ARGV;
 
 	if (@ARGV) {
-		open($infd, '<', $ARGV[0])
-			or die "section: open($ARGV[0]) for reading: $!\n";
-		shift @ARGV;
+		my $file = shift @ARGV;
+		open($infd, '<', $file)
+			or die "section: open($file) for reading: $!\n";
+		push @include_dirs, dirname($file);
 	}
 
 	if (@ARGV) {
@@ -44,7 +48,7 @@ my %cmds = (
 		shift @ARGV;
 	}
 
-	Sections::option_format($type, $infd, $outfd);
+	Sections::option_format(\@include_dirs, $type, $infd, $outfd);
 },
 parse => sub {
 	my $infd = \*STDIN;
@@ -66,9 +70,10 @@ parse => sub {
 	}
 
 	if (@ARGV) {
-		open($infd, '<', $ARGV[0])
-			or die "section: open($ARGV[0]) for reading: $!\n";
-		shift @ARGV;
+		my $file = shift @ARGV;
+		open($infd, '<', $file)
+			or die "section: open($file) for reading: $!\n";
+		push @include_dirs, dirname($file);
 	}
 
 	if (@ARGV) {
@@ -81,11 +86,20 @@ parse => sub {
 	}
 
 	local $Sections::makedepends = $makedep;
-	Sections::sections_pipe($infd, $outfd);
+	Sections::sections_pipe(\@include_dirs, $infd, $outfd);
 }
 );
 
 my $cmd = shift @ARGV;
+while ($cmd =~ /^-I(.*)$/) {
+	if (length($1)) {
+		push @include_dirs, $1;
+	} else {
+		my $dir = shift(@ARGV) // die "missing argument for -I\n";
+		push @include_dirs, $dir;
+	}
+	$cmd = shift @ARGV;
+}
 usage() if !$cmd;
 if (!exists($cmds{$cmd})) {
 	warn "unknown command: $cmd\n";
