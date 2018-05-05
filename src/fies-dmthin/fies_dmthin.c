@@ -25,12 +25,14 @@
 #include "../regex.h"
 #include "fies_dmthin.h"
 
-static const char           *opt_file          = NULL;
-static long                  opt_uid           = -1;
-static long                  opt_gid           = -1;
+static const char           *opt_file            = NULL;
+static long                  opt_uid             = -1;
+static long                  opt_gid             = -1;
 static VectorOf(RexReplace*) opt_xform;
-static bool                  opt_incremental   = false;
-static const char           *opt_snapshot_list = NULL;
+static bool                  opt_incremental     = false;
+static const char           *opt_snapshot_list   = NULL;
+static const char           *opt_data_device     = NULL;
+static const char           *opt_metadata_device = NULL;
 
 static bool option_error = false;
 
@@ -52,6 +54,8 @@ usage(FILE *out, int exit_code)
 #define OPT_INCREMENTAL      (0x1100+'i')
 #define OPT_NO_INCREMENTAL   (0x1000+'i')
 #define OPT_SNAPSHOT_LIST    (0x1000+'L')
+#define OPT_DATA_DEVICE      (0x1000+'d')
+#define OPT_METADATA_DEVICE  (0x1000+'m')
 
 static struct option longopts[] = {
 	{ "help",                    no_argument, NULL, 'h' },
@@ -65,6 +69,8 @@ static struct option longopts[] = {
 	{ "noincremental",           no_argument, NULL, OPT_NO_INCREMENTAL },
 	{ "no-incremental",          no_argument, NULL, OPT_NO_INCREMENTAL },
 	{ "snapshot-list",     required_argument, NULL, OPT_SNAPSHOT_LIST },
+	{ "data-device",       required_argument, NULL, OPT_DATA_DEVICE },
+	{ "metadata-device",   required_argument, NULL, OPT_METADATA_DEVICE },
 	{ NULL, 0, NULL, 0 }
 };
 
@@ -95,9 +101,11 @@ handle_option(int c, int oopt, const char *oarg)
 		if (!arg_stol(oarg, &opt_gid, "--gid", "fies-dmthin"))
 			option_error = true;
 		break;
-	case OPT_INCREMENTAL:    opt_incremental = true; break;
-	case OPT_NO_INCREMENTAL: opt_incremental = false; break;
-	case OPT_SNAPSHOT_LIST:  opt_snapshot_list = oarg; break;
+	case OPT_INCREMENTAL:     opt_incremental = true; break;
+	case OPT_NO_INCREMENTAL:  opt_incremental = false; break;
+	case OPT_SNAPSHOT_LIST:   opt_snapshot_list = oarg; break;
+	case OPT_DATA_DEVICE:     opt_data_device = oarg; break;
+	case OPT_METADATA_DEVICE: opt_metadata_device = oarg; break;
 	case '?':
 		fprintf(stderr, "fies-dmthin: unrecognized option: %c\n",
 		        oopt);
@@ -650,9 +658,40 @@ main(int argc, char **argv)
 	if (option_error)
 		usage(stderr, EXIT_FAILURE);
 
+	if (!opt_data_device != !opt_metadata_device) {
+		fprintf(stderr,
+		        "fies-dmthin: must specify both --data-device and "
+		        "--metadata-device\n");
+		return 1;
+	}
+
 	if (optind >= argc) {
 		fprintf(stderr, "fies-dmthin: missing volume names\n");
 		usage(stderr, EXIT_FAILURE);
+	}
+
+	// Verify this early:
+	if (opt_data_device) {
+		bool err = false;
+		unsigned long devid = 0;
+		for (int i = optind; i != argc; ++i) {
+			if (!str_to_ulong(argv[i], &devid)) {
+				fprintf(stderr,
+				        "fies-dmthin: not a numeric id: %s\n",
+				        argv[i]);
+				err = true;
+				continue;
+			}
+			if (devid > 0x100000000ULL) {
+				fprintf(stderr,
+				        "fies-dmthin: out of range: %lu\n",
+				        devid);
+				err = true;
+				continue;
+			}
+		}
+		if (err)
+			return 1;
 	}
 
 	int stream_fd = STDOUT_FILENO;
