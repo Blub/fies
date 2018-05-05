@@ -65,6 +65,9 @@ struct fies_time {
 /*! \brief The size of a \ref fies_time "\c struct \c fies_time". */
 #define FIES_TIME_SIZE (sizeof(fies_secs)+sizeof(fies_nsecs))
 
+/* Forward declaration */
+struct fies_packet;
+
 /*! \defgroup FiesReaderGroup FiesReader methods.
  * @{
  */
@@ -187,6 +190,9 @@ struct FiesReader_Funcs {
 
 	/*! \brief Optional: The FiesReader is being destroyed. */
 	void     (*finalize)  (void *opaque);
+
+	/*! \brief Optional: Debug callback for the fies packet stream. */
+	void     (*dbg_packet)(void *opaque, const struct fies_packet*);
 };
 
 

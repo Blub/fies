@@ -485,6 +485,7 @@ do_send(void *opaque, void *out, fies_pos pos, size_t count)
 	verbose(VERBOSE_ACTIONS, "send: %zx : %zx => %s\n",
 	        pos, count, fhout->fullpath);
 	ssize_t put = sendfile(fhout->fd, fdin, NULL, count);
+	verbose(VERBOSE_ACTIONS, "send:   returned %zi\n", put);
 	return put < 0 ? -errno : put;
 }
 
@@ -829,7 +830,7 @@ do_finalize(void *opaque)
 	(void)opaque;
 }
 
-const struct FiesReader_Funcs
+struct FiesReader_Funcs
 extract_reader_funcs = {
 	.read       = do_read,
 	.create     = do_create,
@@ -1131,7 +1132,7 @@ list_snapshots(void *opaque, void *pfd, const char **list, size_t count)
 	return 0;
 }
 
-const struct FiesReader_Funcs
+struct FiesReader_Funcs
 list_reader_funcs = {
 	.read       = do_read,
 	.create     = list_create,

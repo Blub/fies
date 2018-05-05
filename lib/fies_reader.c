@@ -872,6 +872,13 @@ FiesReader_readPacket(FiesReader *self)
 	if (FIES_LE(pkt->size) < sizeof(*pkt))
 		FiesReader_throw(self, EINVAL, "Invalid packet size");
 
+	if (self->funcs->dbg_packet) {
+		struct fies_packet pc = *pkt;
+		pc.type = FIES_LE(pc.type);
+		pc.size = FIES_LE(pc.size);
+		self->funcs->dbg_packet(self->opaque, &pc);
+	}
+
 	FiesReader_eat(self, sizeof(*pkt), FR_State_Botched);
 
 	if (self->newfile) {

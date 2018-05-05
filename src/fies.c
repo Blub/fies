@@ -74,6 +74,7 @@ usage(FILE *out, int exit_code)
 #define OPT_XFORM_FILES_FROM   (0x1000+'T')
 #define OPT_WARNING            (0x1000+'w')
 #define OPT_TIME               (0x4000+'T')
+#define OPT_DEBUG              (0x4000+'d')
 
 #define FIES_SHORTOPTS "hvctxrRC:f:s:T:"
 static struct option longopts[] = {
@@ -132,10 +133,12 @@ static struct option longopts[] = {
 	{ "warning",            required_argument, NULL, OPT_WARNING },
 	{ "verbose",                  no_argument, NULL, 'v' },
 	{ "quiet",                    no_argument, NULL, 'q' },
+	{ "debug",                    no_argument, NULL, OPT_DEBUG },
 	{ NULL, 0, NULL, 0 }
 };
 
 static int                   opt_mode             = 0;
+static int                   opt_debug            = 0;
 static const char           *opt_file             = NULL;
 bool                         opt_recurse          = true;
 static const char           *opt_directory        = NULL;
@@ -417,6 +420,9 @@ handle_option(int c, int oopt, const char *oarg)
 
 	case OPT_WARNING:
 		handle_warning_opt(oarg);
+		break;
+	case OPT_DEBUG:
+		opt_debug++;
 		break;
 	case 'h':
 		usage(stdout, EXIT_SUCCESS);
@@ -768,6 +774,16 @@ out:
 	return rc == 0 ? 0 : 1;
 }
 
+static void
+debug_show_packet(void *opaque, const struct fies_packet *packet)
+{
+	(void)opaque;
+	(void)packet;
+	fprintf(stderr, "packet type=0x%04x size=%" PRIu64"\n",
+	        (unsigned)packet->type,
+	        packet->size);
+}
+
 static int
 fies_cli_extract(int argc, char **argv, bool list_only)
 {
@@ -793,11 +809,13 @@ fies_cli_extract(int argc, char **argv, bool list_only)
 		return 1;
 
 	// FIXME: We need to honor the incremental flag instead of rejecting it
+	struct FiesReader_Funcs *funcs = list_only ? &list_reader_funcs
+	                                           : &extract_reader_funcs;
+	if (opt_debug) {
+		funcs->dbg_packet = debug_show_packet;
+	}
 	struct FiesReader *fies =
-		FiesReader_newFull(list_only ? &list_reader_funcs
-		                             : &extract_reader_funcs,
-		                   &stream_fd,
-		                   0, 0);
+		FiesReader_newFull(funcs, &stream_fd, 0, 0);
 	if (!fies) {
 		fprintf(stderr, "fies: failed to create fies reader: %s\n",
 		        strerror(errno));

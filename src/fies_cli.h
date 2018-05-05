@@ -38,8 +38,8 @@ int do_create_add(FiesWriter *fies,
                   dev_t,
                   const char *xformed);
 extern const struct FiesWriter_Funcs create_writer_funcs;
-extern const struct FiesReader_Funcs list_reader_funcs;
-extern const struct FiesReader_Funcs extract_reader_funcs;
+extern struct FiesReader_Funcs list_reader_funcs;
+extern struct FiesReader_Funcs extract_reader_funcs;
 
 void create_init(void);
 
