@@ -14,8 +14,8 @@ $(COMMON_LIB): force
 $(FIES_LIB): force
 	$(MAKE) -C ../../lib libfies.la
 
-fies_restore.lo: fies_restore.options.h
-fies_restore.options.h: ../../doc/fies-restore.options
+fies_restore.lo: fies-restore.options.h
+fies-restore.options.h: ../../doc/fies-restore.options
 	$(V_DESC) echo GEN $@
 	$(V_CMD) $(SECTION) format-options c $< $@
 
@@ -44,7 +44,7 @@ uninstall-bin:
 clean:
 	$(LIBTOOL) --mode=clean rm -rf *.lo
 	$(LIBTOOL) --mode=clean rm -rf $(FIES_RESTORE)
-	rm -f fies_restore.options.h
+	rm -f fies-restore.options.h
 	rm -f *.o *.d
 
 .PHONY: force

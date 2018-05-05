@@ -22,8 +22,8 @@ $(COMMON_LIB): force
 $(FIES_LIB): force
 	$(MAKE) -C ../../lib libfies.la
 
-fies_zvol.lo: fies_zvol.options.h
-fies_zvol.options.h: ../../doc/fies-zvol.options
+fies_zvol.lo: fies-zvol.options.h
+fies-zvol.options.h: ../../doc/fies-zvol.options
 	$(V_DESC) echo GEN $@
 	$(V_CMD) $(SECTION) format-options c $< $@
 
@@ -56,7 +56,7 @@ uninstall-bin:
 clean:
 	$(LIBTOOL) --mode=clean rm -rf *.lo
 	$(LIBTOOL) --mode=clean rm -rf $(FIES_ZVOL)
-	rm -f fies_zvol.options.h
+	rm -f fies-zvol.options.h
 	rm -f *.o *.d
 
 .PHONY: force

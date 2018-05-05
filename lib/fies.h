@@ -1,7 +1,7 @@
 #ifndef FIES_SRC_FIES_H
 #define FIES_SRC_FIES_H
 
-#include "../config.h"
+//include "../config.h"
 #include "../include/fies.h"
 
 #if defined(MAJOR_IN_MKDEV)

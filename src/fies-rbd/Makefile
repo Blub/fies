@@ -19,8 +19,8 @@ $(COMMON_LIB): force
 $(FIES_LIB): force
 	$(MAKE) -C ../../lib libfies.la
 
-fies_rbd.lo: fies_rbd.options.h
-fies_rbd.options.h: ../../doc/fies-rbd.options
+fies_rbd.lo: fies-rbd.options.h
+fies-rbd.options.h: ../../doc/fies-rbd.options
 	$(V_DESC) echo GEN $@
 	$(V_CMD) $(SECTION) format-options c $< $@
 
@@ -53,7 +53,7 @@ uninstall-bin:
 clean:
 	$(LIBTOOL) --mode=clean rm -rf *.lo
 	$(LIBTOOL) --mode=clean rm -rf $(FIES_RBD)
-	rm -f fies_rbd.options.h
+	rm -f fies-rbd.options.h
 	rm -f *.o *.d
 
 .PHONY: force

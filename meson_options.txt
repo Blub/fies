@@ -1,0 +1,10 @@
+option('doc', type: 'combo', choices: ['auto', 'true', 'false'],
+	description: 'enable documentation')
+option('tests', type: 'combo', choices: ['auto', 'true', 'false'],
+	description: 'enable tests')
+option('dmthin', type: 'combo', choices: ['auto', 'true', 'false'],
+	description: 'enable dmthin support (GPL)')
+option('rbd', type: 'combo', choices: ['auto', 'true', 'false'],
+	description: 'enable ceph RBD support (GPL)')
+option('zvol', type: 'combo', choices: ['auto', 'true', 'false'],
+	description: 'enable ZFS zvol support (CDDL)')

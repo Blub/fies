@@ -19,8 +19,8 @@ $(COMMON_LIB): force
 $(FIES_LIB): force
 	$(MAKE) -C ../../lib libfies.la
 
-fies_dmthin.lo: fies_dmthin.options.h
-fies_dmthin.options.h: ../../doc/fies-dmthin.options
+fies_dmthin.lo: fies-dmthin.options.h
+fies-dmthin.options.h: ../../doc/fies-dmthin.options
 	$(V_DESC) echo GEN $@
 	$(V_CMD) $(SECTION) format-options c $< $@
 
@@ -53,7 +53,7 @@ uninstall-bin:
 clean:
 	$(LIBTOOL) --mode=clean rm -rf *.lo
 	$(LIBTOOL) --mode=clean rm -rf $(FIES_DMTHIN)
-	rm -f fies_dmthin.options.h
+	rm -f fies-dmthin.options.h
 	rm -f *.o *.d
 
 .PHONY: force

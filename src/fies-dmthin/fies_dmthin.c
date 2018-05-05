@@ -41,7 +41,7 @@ static bool option_error = false;
 static const char *usage_msg =
 "usage: fies-dmthin [options] volumes...\n\
 Options:\n"
-#include "fies_dmthin.options.h"
+#include "fies-dmthin.options.h"
 ;
 
 static _Noreturn void

@@ -40,7 +40,7 @@ static bool option_error = false;
 static const char *usage_msg =
 "usage: fies-restore [options] volumes...\n\
 Options:\n"
-#include "fies_restore.options.h"
+#include "fies-restore.options.h"
 ;
 
 static _Noreturn void

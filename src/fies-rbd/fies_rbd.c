@@ -47,7 +47,7 @@ static GHashTable *gPools = NULL;
 static const char *usage_msg =
 "usage: fies-rbd [options] [-- ceph options [--]] {image | snapshot}...\n\
 Options:\n"
-#include "fies_rbd.options.h"
+#include "fies-rbd.options.h"
 ;
 
 static _Noreturn void

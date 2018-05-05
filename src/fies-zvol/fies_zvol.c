@@ -56,7 +56,7 @@ static libzfs_handle_t *zfs = NULL;
 static const char *usage_msg =
 "usage: fies-zvol [options] [--] {zvol|zvol-snapshot}...\n\
 Options:\n"
-#include "fies_zvol.options.h"
+#include "fies-zvol.options.h"
 ;
 
 static _Noreturn void
