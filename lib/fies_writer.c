@@ -1002,14 +1002,14 @@ FiesWriter_writeFileDo(FiesWriter *self, FiesFile *file, bool ref_file)
 			break;
 		}
 	}
+	if (retval < 0)
+		return retval;
 	if (!ref_file && at < filesize) {
 		fies_ssz rc = FiesWriter_sendHole(self, fileid, at,
 		                                  filesize-at, filesize);
 		if (rc < 0)
 			retval = (int)rc;
 	}
-	if (retval < 0)
-		return retval;
 	retval = FiesWriter_sendFileEnd(self, fileid);
 /*out:*/
 	free(exbuf);

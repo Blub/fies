@@ -941,9 +941,9 @@ main(int argc, char **argv)
 			if (!file)
 				goto out_errno;
 			verbose(VERBOSE_FILES, "%s\n", entry->name);
-			err = -handleAndCloseFile(fies, file);
-			if (err > 0)
-				goto out_err;
+			err = handleAndCloseFile(fies, file);
+			if (err != 0)
+				goto out_errno;
 		}
 	} else {
 		dmthin_metadevs = ThinMetaTable_new();
@@ -955,9 +955,9 @@ main(int argc, char **argv)
 			if (!file)
 				goto out_errno;
 			verbose(VERBOSE_FILES, "%s\n", arg);
-			err = -handleAndCloseFile(fies, file);
-			if (err > 0)
-				goto out_err;
+			err = handleAndCloseFile(fies, file);
+			if (err != 0)
+				goto out_errno;
 		}
 	}
 
@@ -969,12 +969,15 @@ out_errno:
 	errnostr = strerror(err);
 out_err:
 	errstr = FiesWriter_getError(fies);
-	if (errstr)
+	if (errstr) {
 		fprintf(stderr, "fies-dmthin: %s", errstr);
-	if (errnostr)
-		fprintf(stderr, ": %s\n", errnostr);
-	else
-		fprintf(stderr, "\n");
+		if (errnostr)
+			fprintf(stderr, ": %s\n", errnostr);
+		else
+			fprintf(stderr, "\n");
+	} else if (errnostr) {
+		fprintf(stderr, "fies-dmthin: %s\n", errnostr);
+	}
 out:
 	ThinMetaTable_delete(dmthin_metadevs);
 	ThinMeta_delete(meta_device);
