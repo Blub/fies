@@ -9,3 +9,4 @@
 * fies-sheepdog
 * compression support in regular fies? (iow. complain about fies-zvol's license)
 * regex /options should work for both --xform and --rexclude
+* --mtime and --clamp-mtime from tar
