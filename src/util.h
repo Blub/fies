@@ -30,6 +30,7 @@ char **strvec_replace(const char *const *strv, ...) FIES_SENTINEL;
 char **vstrvec_replace(const char *const *strv, va_list);
 
 void format_size(unsigned long long size, char *buffer, size_t bufsize);
+int multiply_size(unsigned long long *size, const char *suffix);
 
 uint32_t crc32c(const void *data, size_t length);
 

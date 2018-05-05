@@ -110,24 +110,33 @@ VerifyThinSuper(const struct thin_superblock *super, size_t bsz, size_t bnr)
 }
 
 
-static ThinMeta*
+ThinMeta*
 ThinMeta_new(const char *name,
              const char *poolname,
              size_t root,
              size_t datablocksecs,
-             FiesWriter *writer)
+             FiesWriter *writer,
+             bool raw)
 {
-	char *path = make_path("/dev/mapper/", name, NULL);
+	char *tmppath;
+	const char *path;
+	if (raw) {
+		tmppath = NULL;
+		path = name;
+	} else {
+		tmppath = make_path("/dev/mapper/", name, NULL);
+		path = tmppath;
+	}
 	int fd = open(path, O_RDONLY | O_DIRECT);
 	if (fd < 0) {
 		int saved_errno = errno;
-		free(path);
 		fprintf(stderr, "fies: open(%s): %s\n",
 		        path, strerror(saved_errno));
+		free(tmppath);
 		errno = saved_errno;
 		return NULL;
 	}
-	free(path);
+	free(tmppath);
 
 	unsigned long size512s = 0;
 	size_t blocksize = 0;
@@ -171,15 +180,22 @@ ThinMeta_release(ThinMeta *self)
 	self->snaproot = 0;
 }
 
-static void
-ThinMeta_delete(gpointer pself)
+void
+ThinMeta_delete(ThinMeta *self)
 {
-	ThinMeta *self = pself;
+	if (!self)
+		return;
 	close(self->fd);
 	ThinMeta_release(self);
 	free(self->name);
 	free(self->poolname);
 	free(self);
+}
+
+static void
+ThinMeta_delete_g(gpointer pself)
+{
+	ThinMeta_delete(pself);
 }
 
 static inline bool
@@ -216,7 +232,7 @@ LoadNode(ThinMeta *self, void *buffer, size_t block)
 }
 
 bool
-ThinMeta_reserve(ThinMeta *self)
+ThinMeta_loadRoot(ThinMeta *self, bool reserve)
 {
 	if (self->release) {
 		// internal usage error, we snapshot once for each volume
@@ -228,7 +244,7 @@ ThinMeta_reserve(ThinMeta *self)
 	void *buffer = aligned_alloc(self->blocksize, self->blocksize);
 	struct thin_superblock *super = buffer;
 
-	if (self->snaproot) {
+	if (reserve) { //if (self->snaproot) {
 		if (!DMMessage(self->poolname, "reserve_metadata_snap"))
 			goto out;
 		self->release = true;
@@ -258,13 +274,14 @@ GHashTable*
 ThinMetaTable_new()
 {
 	return g_hash_table_new_full(g_str_hash, g_str_equal,
-	                             NULL, ThinMeta_delete);
+	                             NULL, ThinMeta_delete_g);
 }
 
 void
 ThinMetaTable_delete(GHashTable *table)
 {
-	g_hash_table_destroy(table);
+	if (table)
+		g_hash_table_destroy(table);
 }
 
 static ThinMeta*
@@ -280,7 +297,7 @@ ThinMetaTable_addMeta(GHashTable *table,
 		return meta;
 
 	ThinMeta *dev = ThinMeta_new(name, poolname, root, datablocksecs,
-	                             writer);
+	                             writer, false);
 	if (!dev)
 		return NULL;
 

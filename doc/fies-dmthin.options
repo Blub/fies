@@ -38,3 +38,22 @@
     optional nanosecond precision), followed by its name up to the end of the
     line. The name is assumed to be encoded like filenames in to mtree(5) files
     (similar to mount points in `/proc/mounts`).
+
+\opt --data-device= FILE
+\short dmthin data device for raw access
+    Path to the dmthin raw data device. This can be used when volumes cannot be
+    activated via lvchange anymore.
+    This option requires ``--metadata-device`` and ``--chunk-size`` to be set.
+
+\opt --metadata-device= FILE
+\short dmthin meta data device
+    Path to the dmthin metadata device.
+    Path to the dmthin raw data device. This can be used when volumes cannot be
+    activated via lvchange anymore.
+    This option requires ``--data-device`` and ``--chunk-size`` to be set.
+
+\opt --chunk-size= BYTES
+\short allocation chunk size
+    Specifies the allocation chunk size used in the data device.
+    This option is only used when ``--data-device`` and ``--metadata-device``
+    are set.

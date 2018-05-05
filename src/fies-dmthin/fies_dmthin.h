@@ -35,6 +35,14 @@ typedef struct {
 	size_t   datablocksize;
 } ThinMeta;
 #pragma clang diagnostic pop
+// For *raw* access only:
+ThinMeta* ThinMeta_new(const char *name,
+                       const char *poolname,
+                       size_t root,
+                       size_t datablocksecs,
+                       FiesWriter *writer,
+                       bool raw);
+void ThinMeta_delete(ThinMeta*);
 
 GHashTable* ThinMetaTable_new(void);
 void        ThinMetaTable_delete(GHashTable*);
@@ -42,8 +50,8 @@ ThinMeta*   ThinMetaTable_addPool(GHashTable*,
                                   const char *poolname,
                                   size_t root,
                                   FiesWriter *writer);
-bool ThinMeta_reserve(ThinMeta*);
 void ThinMeta_release(ThinMeta*);
+bool ThinMeta_loadRoot(ThinMeta*, bool reserve);
 ssize_t ThinMeta_map(ThinMeta*,
                      unsigned dev,
                      fies_pos logical_start,

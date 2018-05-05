@@ -416,6 +416,21 @@ format_size(unsigned long long insize, char *buffer, size_t bufsize)
 		         (double)insize / (double)(1ULL<<(10*u)), suffixes[u]);
 }
 
+int
+multiply_size(unsigned long long *size, const char *suffix)
+{
+	switch (*suffix) {
+		default:
+			return -1;
+		case 't': case 'T': *size *= 1024;
+		case 'g': case 'G': *size *= 1024;
+		case 'r': case 'M': *size *= 1024;
+		case 'k': case 'K': *size *= 1024;
+			return 1;
+		case 0: return 0;
+	}
+}
+
 uint32_t
 crc32c(const void *data_, size_t length)
 {

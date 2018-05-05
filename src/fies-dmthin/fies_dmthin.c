@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <sys/ioctl.h>
+#include <assert.h>
 
 #include <linux/fs.h>
 #include <libdevmapper.h>
@@ -33,6 +34,7 @@ static bool                  opt_incremental     = false;
 static const char           *opt_snapshot_list   = NULL;
 static const char           *opt_data_device     = NULL;
 static const char           *opt_metadata_device = NULL;
+static size_t                opt_data_chunksize  = 0;
 
 static bool option_error = false;
 
@@ -56,6 +58,7 @@ usage(FILE *out, int exit_code)
 #define OPT_SNAPSHOT_LIST    (0x1000+'L')
 #define OPT_DATA_DEVICE      (0x1000+'d')
 #define OPT_METADATA_DEVICE  (0x1000+'m')
+#define OPT_DATA_CHUNKSIZE   (0x1000+'s')
 
 static struct option longopts[] = {
 	{ "help",                    no_argument, NULL, 'h' },
@@ -71,6 +74,7 @@ static struct option longopts[] = {
 	{ "snapshot-list",     required_argument, NULL, OPT_SNAPSHOT_LIST },
 	{ "data-device",       required_argument, NULL, OPT_DATA_DEVICE },
 	{ "metadata-device",   required_argument, NULL, OPT_METADATA_DEVICE },
+	{ "chunk-size",        required_argument, NULL, OPT_DATA_CHUNKSIZE },
 	{ NULL, 0, NULL, 0 }
 };
 
@@ -106,6 +110,20 @@ handle_option(int c, int oopt, const char *oarg)
 	case OPT_SNAPSHOT_LIST:   opt_snapshot_list = oarg; break;
 	case OPT_DATA_DEVICE:     opt_data_device = oarg; break;
 	case OPT_METADATA_DEVICE: opt_metadata_device = oarg; break;
+	case OPT_DATA_CHUNKSIZE:
+	{
+		long size = -1;
+		if (!arg_stol(oarg, &size, "--chunk-size", "fies-dmthin"))
+			option_error = true;
+		opt_data_chunksize = (size_t)size;
+		if (opt_data_chunksize % 512) {
+			fprintf(stderr, "fies-dmthin: bad chunk size: %lu, "
+			        "chunk size must be a multiple of 512\n",
+			        opt_data_chunksize);
+			option_error = true;
+		}
+		break;
+	}
 	case '?':
 		fprintf(stderr, "fies-dmthin: unrecognized option: %c\n",
 		        oopt);
@@ -495,8 +513,8 @@ DMThinVolume_open(const char *volume_or_device,
 	//	goto out;
 	//}
 	self->suspended = true;
-	if (!ThinMeta_reserve(self->meta)) {
-		errstr = "failed to reserve metadata snapshot";
+	if (!ThinMeta_loadRoot(self->meta, true)) {
+		errstr = "failed to reserve or load metadata snapshot";
 		goto out;
 	}
 
@@ -525,10 +543,118 @@ out:
 	return NULL;
 }
 
+typedef struct RawDMThinVolume {
+	ThinMeta *meta;
+	int data_fd;
+	unsigned int devid;
+	fies_sz size;
+} RawDMTV;
+
+static void
+RawDMTV_destroy(RawDMTV *self)
+{
+	// Don't close the data fd...
+	free(self);
+}
+
+static void
+RawDMTV_close(FiesFile *handle)
+{
+	RawDMTV_destroy(handle->opaque);
+}
+
+static ssize_t
+RawDMTV_preadp(FiesFile *handle, void *buffer, size_t size, fies_pos off,
+               fies_pos physical)
+{
+	(void)off;
+	RawDMTV *self = handle->opaque;
+	// Since extents have been mapped prior to calling this method, it
+	// should only actually be called for *existing* extents, meaning
+	// we don't need to map them and we may assume that they exist.
+	return pread(self->data_fd, buffer, size, (off_t)physical);
+}
+
+static ssize_t
+RawDMTV_nextExtents(FiesFile *handle,
+                    FiesWriter *writer,
+                    fies_pos logical_start,
+                    FiesFile_Extent *buffer,
+                    size_t count)
+{
+	(void)writer;
+	RawDMTV *self = handle->opaque;
+	return ThinMeta_map(self->meta, self->devid,
+	                    logical_start, buffer, count);
+}
+
+static const struct FiesFile_Funcs
+raw_dmthin_file_funcs = {
+	.close         = RawDMTV_close,
+	.preadp        = RawDMTV_preadp,
+	.next_extents  = RawDMTV_nextExtents,
+	//.verify_extent = DMTV_verifyExtent,
+};
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wpadded"
+struct RawDeviceOpt {
+	const char *name;
+	unsigned int devid;
+	fies_sz size;
+};
+#pragma clang diagnostic pop
+static VectorOf(struct RawDeviceOpt) raw_device_entries;
+
+static FiesFile*
+OpenThinVolume(const struct RawDeviceOpt *entry,
+               FiesWriter *writer,
+               ThinMeta *meta,
+               int data_fd)
+{
+	char *xformed_name = apply_xform_vec(entry->name, &opt_xform);
+	if (!xformed_name) {
+		int saved_errno = errno;
+		FiesWriter_setError(writer, saved_errno,
+		                    "failed to apply `--xform` to device id");
+		errno = saved_errno;
+		return NULL;
+	}
+
+	RawDMTV *self = u_malloc0(sizeof(*self));
+	if (!self) {
+		int saved_errno = errno;
+		free(xformed_name);
+		FiesWriter_setError(writer, saved_errno,
+		                    "failed to allocate memory");
+		errno = saved_errno;
+		return NULL;
+	}
+	self->devid = entry->devid;
+	self->meta = meta;
+	self->data_fd = data_fd;
+
+	FiesFile *file = FiesFile_new(self, &raw_dmthin_file_funcs,
+	                              xformed_name, NULL, entry->size,
+	                              FIES_M_FREG | 0600,
+	                              self->meta->fid);
+	int saved_errno = errno;
+	free(xformed_name);
+	if (!file) {
+		FiesWriter_setError(writer, saved_errno, NULL);
+		RawDMTV_destroy(self);
+		errno = saved_errno;
+		return NULL;
+	}
+
+	return file;
+}
+
 static void
 main_cleanup()
 {
 	Vector_destroy(&opt_xform);
+	Vector_destroy(&raw_device_entries);
 }
 
 static ssize_t
@@ -636,6 +762,66 @@ out:
 	return rc;
 }
 
+static bool
+parseRawThinEntry(struct RawDeviceOpt *dev, const char *entry)
+{
+	errno = 0;
+	unsigned long long tmp;
+	char *endp = NULL;
+
+	errno = 0;
+	tmp = strtoull(entry, &endp, 0);
+	if (errno || !endp) {
+		fprintf(stderr, "fies-dmthin: expected 'id:size', not: %s\n",
+		        entry);
+		return false;
+	}
+	if (*endp != ':' || !endp[1]) {
+		fprintf(stderr, "fies-dmthin: expected 'id:size', not: %s\n",
+		        entry);
+		return false;
+	}
+	if (tmp > UINT_MAX) {
+		fprintf(stderr, "fies-dmthin: id too large: %llu\n", tmp);
+		return false;
+	}
+	entry = endp+1;
+	dev->devid = (unsigned int)tmp;
+
+	errno = 0;
+	endp = NULL;
+	tmp = strtoull(entry, &endp, 0);
+	if (errno || !endp) {
+		fprintf(stderr, "fies-dmthin: bad size: %s\n", entry);
+		return false;
+	}
+	int skip = multiply_size(&tmp, endp);
+	if (skip < 0 || endp[skip]) {
+		fprintf(stderr, "fies-dmthin: bad size in: %s\n", entry);
+		return false;
+	}
+	dev->size = (fies_sz)tmp;
+	return true;
+}
+
+static int
+handleAndCloseFile(FiesWriter *fies, FiesFile *file)
+{
+	int err = 0;
+	if (opt_incremental) {
+		opt_incremental = false;
+		err = FiesWriter_readRefFile(fies, file);
+	} else {
+		err = FiesWriter_writeFile(fies, file);
+	}
+	if (!err && opt_snapshot_list) {
+		err = SendSnapshotList(fies, file, opt_snapshot_list);
+		opt_snapshot_list = NULL;
+	}
+	FiesFile_close(file);
+	return err;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -645,6 +831,8 @@ main(int argc, char **argv)
 
 	Vector_init_type(&opt_xform, RexReplace*);
 	Vector_set_destructor(&opt_xform, (Vector_dtor*)RexReplace_pdestroy);
+
+	Vector_init_type(&raw_device_entries, struct RawDeviceOpt);
 
 	atexit(main_cleanup);
 
@@ -671,27 +859,31 @@ main(int argc, char **argv)
 	}
 
 	// Verify this early:
+
+	int data_fd = -1;
 	if (opt_data_device) {
-		bool err = false;
-		unsigned long devid = 0;
+		data_fd = open(opt_data_device, O_RDONLY);
+		if (data_fd < 0) {
+			fprintf(stderr,
+			        "fies-dmthin: cannot open: %s: %s\n",
+			        opt_data_device, strerror(errno));
+			return 1;
+		}
+
+		bool has_error = false;
 		for (int i = optind; i != argc; ++i) {
-			if (!str_to_ulong(argv[i], &devid)) {
-				fprintf(stderr,
-				        "fies-dmthin: not a numeric id: %s\n",
-				        argv[i]);
-				err = true;
-				continue;
-			}
-			if (devid > 0x100000000ULL) {
-				fprintf(stderr,
-				        "fies-dmthin: out of range: %lu\n",
-				        devid);
-				err = true;
-				continue;
+			struct RawDeviceOpt entry;
+			if (parseRawThinEntry(&entry, argv[i])) {
+				entry.name = argv[i];
+				Vector_push(&raw_device_entries, &entry);
+			} else {
+				has_error = true;
 			}
 		}
-		if (err)
+		if (has_error) {
+			close(data_fd);
 			return 1;
+		}
 	}
 
 	int stream_fd = STDOUT_FILENO;
@@ -700,6 +892,8 @@ main(int argc, char **argv)
 		if (stream_fd < 0) {
 			fprintf(stderr, "fies-dmthin: open(%s): %s\n",
 			        opt_file, strerror(errno));
+			if (data_fd >= 0)
+				close(data_fd);
 			return 1;
 		}
 	}
@@ -709,30 +903,53 @@ main(int argc, char **argv)
 		fprintf(stderr, "fies-dmthin: failed to initialize: %s\n",
 		        strerror(errno));
 		close(stream_fd);
+		if (data_fd >= 0)
+			close(data_fd);
 		return 1;
 	}
 
-	GHashTable *dmthin_metadevs = ThinMetaTable_new();
+	GHashTable *dmthin_metadevs = NULL;
+	ThinMeta *meta_device = NULL;
 
-	for (int i = optind; i != argc; ++i) {
-		const char *arg = argv[i];
-		FiesFile *file = DMThinVolume_open(arg, fies, dmthin_metadevs);
-		if (!file)
-			goto out_errno;
-		verbose(VERBOSE_FILES, "%s\n", arg);
-		if (opt_incremental) {
-			opt_incremental = false;
-			err = -FiesWriter_readRefFile(fies, file);
-		} else {
-			err = -FiesWriter_writeFile(fies, file);
-		}
-		if (!err && opt_snapshot_list) {
-			err = -SendSnapshotList(fies, file, opt_snapshot_list);
-			opt_snapshot_list = NULL;
-		}
-		FiesFile_close(file);
-		if (err > 0)
+	if (opt_metadata_device) {
+		assert(opt_data_device);
+		meta_device = ThinMeta_new(opt_metadata_device, "<pool>", 0,
+		                 opt_data_chunksize/512, fies, true);
+		if (!meta_device) {
+			fprintf(stderr,
+			    "fies-dmthin: failed to open metadata device\n");
 			goto out_err;
+		}
+		if (!ThinMeta_loadRoot(meta_device, false)) {
+			fprintf(stderr, "fies-dmthin: "
+			        "failed to load metadata superblock\n");
+			goto out_err;
+		}
+		struct RawDeviceOpt *entry;
+		Vector_foreach(&raw_device_entries, entry) {
+			FiesFile *file =
+			    OpenThinVolume(entry, fies, meta_device, data_fd);
+			if (!file)
+				goto out_errno;
+			verbose(VERBOSE_FILES, "%s\n", entry->name);
+			err = -handleAndCloseFile(fies, file);
+			if (err > 0)
+				goto out_err;
+		}
+	} else {
+		dmthin_metadevs = ThinMetaTable_new();
+
+		for (int i = optind; i != argc; ++i) {
+			const char *arg = argv[i];
+			FiesFile *file =
+			    DMThinVolume_open(arg, fies, dmthin_metadevs);
+			if (!file)
+				goto out_errno;
+			verbose(VERBOSE_FILES, "%s\n", arg);
+			err = -handleAndCloseFile(fies, file);
+			if (err > 0)
+				goto out_err;
+		}
 	}
 
 	err = 0;
@@ -751,7 +968,10 @@ out_err:
 		fprintf(stderr, "\n");
 out:
 	ThinMetaTable_delete(dmthin_metadevs);
+	ThinMeta_delete(meta_device);
 	FiesWriter_delete(fies);
 	close(stream_fd);
+	if (data_fd >= 0)
+		close(data_fd);
 	return err ? 1 : 0;
 }
