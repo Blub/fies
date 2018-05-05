@@ -249,6 +249,8 @@ ZVOL_open(FiesWriter *writer,
 	                              fies_dev_for_zpool(writer, pool));
 	if (!file)
 		goto out_errno;
+	file->uid = (uint32_t)opt_uid;
+	file->gid = (uint32_t)opt_gid;
 
 	return file;
 out_errno:
@@ -836,6 +838,11 @@ main(int argc, char **argv)
 
 	if (option_error)
 		usage(stderr, EXIT_FAILURE);
+
+	if (opt_uid == -1)
+		opt_uid = getuid();
+	if (opt_gid == -1)
+		opt_gid = getgid();
 
 	argc -= optind;
 	argv += optind;

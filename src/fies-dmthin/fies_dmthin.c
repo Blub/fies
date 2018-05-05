@@ -533,6 +533,8 @@ DMThinVolume_open(const char *volume_or_device,
 		errno = saved_errno;
 		goto out;
 	}
+	file->uid = (uint32_t)opt_uid;
+	file->gid = (uint32_t)opt_gid;
 	return file;
 
 out:
@@ -646,6 +648,8 @@ OpenThinVolume(const struct RawDeviceOpt *entry,
 		errno = saved_errno;
 		return NULL;
 	}
+	file->uid = (uint32_t)opt_uid;
+	file->gid = (uint32_t)opt_gid;
 
 	return file;
 }
@@ -845,6 +849,11 @@ main(int argc, char **argv)
 	}
 	if (option_error)
 		usage(stderr, EXIT_FAILURE);
+
+	if (opt_uid == -1)
+		opt_uid = getuid();
+	if (opt_gid == -1)
+		opt_gid = getgid();
 
 	if (!opt_data_device != !opt_metadata_device) {
 		fprintf(stderr,

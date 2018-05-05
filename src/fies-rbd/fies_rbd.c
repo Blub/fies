@@ -550,6 +550,8 @@ do_cephrbd_add(FiesWriter *fies,
 	errno = saved_errno;
 	if (!file)
 		return -errno;
+	file->uid = (uint32_t)opt_uid;
+	file->gid = (uint32_t)opt_gid;
 
 	if (snapshot_list) {
 		rc = FiesWriter_readRefFile(fies, file);
@@ -824,8 +826,16 @@ main(int argc, char **argv)
 	if ((opt_from || opt_to) && argc != 1) {
 		showerr("fies-rbd: --from and --to "
 		        "can only be used with a single volume\n");
-		usage(stderr, EXIT_FAILURE);
+		option_error = true;
 	}
+
+	if (option_error)
+		usage(stderr, EXIT_FAILURE);
+
+	if (opt_uid == -1)
+		opt_uid = getuid();
+	if (opt_gid == -1)
+		opt_gid = getgid();
 
 	rc = rados_connect(gRados);
 	if (rc < 0) {
