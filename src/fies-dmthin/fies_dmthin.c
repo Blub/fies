@@ -654,9 +654,36 @@ OpenThinVolume(const struct RawDeviceOpt *entry,
 	return file;
 }
 
+static GHashTable *gThinMetaDevices = NULL;
+static ThinMeta *gRawMetaDevice = NULL;
+
 static void
-main_cleanup()
+cleanupDevices()
 {
+	// After a terminating signal atexit() should still be called and then
+	// we can use this to cleanup after reserved metadata snapshots.
+	if (gThinMetaDevices) {
+		ThinMetaTable_delete(gThinMetaDevices);
+		gThinMetaDevices = NULL;
+	}
+	if (gRawMetaDevice) {
+		ThinMeta_delete(gRawMetaDevice);
+		gRawMetaDevice = NULL;
+	}
+}
+
+static void
+handleSignal()
+{
+	fprintf(stderr, "fies-dmthin: caught signal\n");
+	cleanupDevices();
+	exit(-1);
+}
+
+static void
+cleanupMain()
+{
+	cleanupDevices();
 	Vector_destroy(&opt_xform);
 	Vector_destroy(&raw_device_entries);
 }
@@ -838,7 +865,10 @@ main(int argc, char **argv)
 
 	Vector_init_type(&raw_device_entries, struct RawDeviceOpt);
 
-	atexit(main_cleanup);
+	atexit(cleanupMain);
+	signal(SIGINT, handleSignal);
+	signal(SIGTERM, handleSignal);
+	signal(SIGQUIT, handleSignal);
 
 	while (true) {
 		int index = 0;
@@ -917,19 +947,16 @@ main(int argc, char **argv)
 		return 1;
 	}
 
-	GHashTable *dmthin_metadevs = NULL;
-	ThinMeta *meta_device = NULL;
-
 	if (opt_metadata_device) {
 		assert(opt_data_device);
-		meta_device = ThinMeta_new(opt_metadata_device, "<pool>", 0,
+		gRawMetaDevice = ThinMeta_new(opt_metadata_device, "<pool>", 0,
 		                 opt_data_chunksize/512, fies, true);
-		if (!meta_device) {
+		if (!gRawMetaDevice) {
 			fprintf(stderr,
 			    "fies-dmthin: failed to open metadata device\n");
 			goto out_err;
 		}
-		if (!ThinMeta_loadRoot(meta_device, false)) {
+		if (!ThinMeta_loadRoot(gRawMetaDevice, false)) {
 			fprintf(stderr, "fies-dmthin: "
 			        "failed to load metadata superblock\n");
 			goto out_err;
@@ -937,7 +964,8 @@ main(int argc, char **argv)
 		struct RawDeviceOpt *entry;
 		Vector_foreach(&raw_device_entries, entry) {
 			FiesFile *file =
-			    OpenThinVolume(entry, fies, meta_device, data_fd);
+			    OpenThinVolume(entry, fies, gRawMetaDevice,
+			                   data_fd);
 			if (!file)
 				goto out_errno;
 			verbose(VERBOSE_FILES, "%s\n", entry->name);
@@ -946,12 +974,12 @@ main(int argc, char **argv)
 				goto out_errno;
 		}
 	} else {
-		dmthin_metadevs = ThinMetaTable_new();
+		gThinMetaDevices = ThinMetaTable_new();
 
 		for (int i = optind; i != argc; ++i) {
 			const char *arg = argv[i];
 			FiesFile *file =
-			    DMThinVolume_open(arg, fies, dmthin_metadevs);
+			    DMThinVolume_open(arg, fies, gThinMetaDevices);
 			if (!file)
 				goto out_errno;
 			verbose(VERBOSE_FILES, "%s\n", arg);
@@ -979,8 +1007,10 @@ out_err:
 		fprintf(stderr, "fies-dmthin: %s\n", errnostr);
 	}
 out:
-	ThinMetaTable_delete(dmthin_metadevs);
-	ThinMeta_delete(meta_device);
+	ThinMetaTable_delete(gThinMetaDevices);
+	gThinMetaDevices = NULL;
+	ThinMeta_delete(gRawMetaDevice);
+	gRawMetaDevice = NULL;
 	FiesWriter_delete(fies);
 	close(stream_fd);
 	if (data_fd >= 0)
