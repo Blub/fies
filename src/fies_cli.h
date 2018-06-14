@@ -30,13 +30,14 @@ typedef struct {
 } clone_info_t;
 extern clone_info_t          clone_info;
 
-int create_add(FiesWriter *fies, const char *arg);
+int create_add(FiesWriter *fies, const char *arg, bool as_ref);
 int do_create_add(FiesWriter *fies,
                   int dirfd,
                   const char *basepart,
                   const char *fullpath,
                   dev_t,
-                  const char *xformed);
+                  const char *xformed,
+                  bool as_ref);
 extern const struct FiesWriter_Funcs create_writer_funcs;
 extern struct FiesReader_Funcs list_reader_funcs;
 extern struct FiesReader_Funcs extract_reader_funcs;

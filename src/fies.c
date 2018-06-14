@@ -65,6 +65,7 @@ usage(FILE *out, int exit_code)
 #define OPT_XATTR_RINCLUDE     (0x3100+'i')
 #define OPT_INCREMENTAL        (0x1100+'i')
 #define OPT_NO_INCREMENTAL     (0x1000+'i')
+#define OPT_REF_FILE           (0x1000+'r')
 #define OPT_WILDCARDS          (0x1100+'w')
 #define OPT_NO_WILDCARDS       (0x2100+'w')
 #define OPT_WILD_SLASH         (0x1200+'w')
@@ -72,6 +73,8 @@ usage(FILE *out, int exit_code)
 #define OPT_NULL               (0x1000+'0')
 #define OPT_NO_NULL            (0x1100+'0')
 #define OPT_XFORM_FILES_FROM   (0x1000+'T')
+#define OPT_REF_FILES_FROM     (0x2000+'r')
+#define OPT_XFORM_REF_FILES_FROM (0x2000+'T')
 #define OPT_WARNING            (0x1000+'w')
 #define OPT_TIME               (0x4000+'T')
 #define OPT_DEBUG              (0x4000+'d')
@@ -118,6 +121,7 @@ static struct option longopts[] = {
 	{ "incremental",              no_argument, NULL, OPT_INCREMENTAL },
 	{ "noincremental",            no_argument, NULL, OPT_NO_INCREMENTAL },
 	{ "no-incremental",           no_argument, NULL, OPT_NO_INCREMENTAL },
+	{ "ref-file",           required_argument, NULL, OPT_REF_FILE },
 	{ "wildcards",                no_argument, NULL, OPT_WILDCARDS },
 	{ "no-wildcards",             no_argument, NULL, OPT_NO_WILDCARDS },
 	{ "wildcards-match-slash",    no_argument, NULL, OPT_WILD_SLASH },
@@ -127,6 +131,11 @@ static struct option longopts[] = {
 	{ "transforming-files-from",
 	                        required_argument, NULL, OPT_XFORM_FILES_FROM},
 	{ "xforming-files-from",required_argument, NULL, OPT_XFORM_FILES_FROM},
+	{ "ref-files-from",     required_argument, NULL, OPT_REF_FILES_FROM },
+	{ "transforming-ref-files-from",
+	                        required_argument, NULL, OPT_XFORM_REF_FILES_FROM},
+	{ "xforming-ref-files-from",
+	                        required_argument, NULL, OPT_XFORM_REF_FILES_FROM},
 	{ "null",                     no_argument, NULL, OPT_NULL },
 	{ "no-null",                  no_argument, NULL, OPT_NO_NULL },
 	{ "time",               required_argument, NULL, OPT_TIME },
@@ -162,8 +171,10 @@ static VectorOf(const char*) opt_xattr_exclude;
 static VectorOf(Regex*)      opt_xattr_rexclude;
 static VectorOf(const char*) opt_xattr_include;
 static VectorOf(Regex*)      opt_xattr_rinclude;
+static VectorOf(const char*) opt_ref_files;
 static bool                  opt_null             = false;
 VectorOf(from_file_t)        opt_files_from_list;
+VectorOf(from_file_t)        opt_ref_files_from_list;
 static enum {
 	TIME_LOCALE,
 	TIME_RFC2822,
@@ -318,6 +329,9 @@ handle_option(int c, int oopt, const char *oarg)
 	case OPT_NO_WILD_SLASH:      opt_wildcards_slash = false; break;
 	case OPT_NULL:               opt_null = true; break;
 	case OPT_NO_NULL:            opt_null = false; break;
+	case OPT_REF_FILE:
+		Vector_push(&opt_ref_files, &oarg);
+		break;
 	case OPT_UID:
 		if (!arg_stol(oarg, &opt_uid, "--uid", "fies"))
 			option_error = true;
@@ -386,6 +400,16 @@ handle_option(int c, int oopt, const char *oarg)
 	case OPT_XFORM_FILES_FROM: {
 		from_file_t entry = { .file = oarg, .transforming = true };
 		Vector_push(&opt_files_from_list, &entry);
+		break;
+	}
+	case OPT_REF_FILES_FROM: {
+		from_file_t entry = { .file = oarg, .transforming = false };
+		Vector_push(&opt_ref_files_from_list, &entry);
+		break;
+	}
+	case OPT_XFORM_REF_FILES_FROM: {
+		from_file_t entry = { .file = oarg, .transforming = true };
+		Vector_push(&opt_ref_files_from_list, &entry);
 		break;
 	}
 
@@ -627,6 +651,7 @@ main_cleanup()
 {
 	close_stream();
 	Vector_destroy(&opt_files_from_list);
+	Vector_destroy(&opt_ref_files_from_list);
 	Vector_destroy(&opt_exclude);
 	Vector_destroy(&opt_include);
 	Vector_destroy(&opt_xattr_exclude);
@@ -634,10 +659,12 @@ main_cleanup()
 	Vector_destroy(&opt_xattr_include);
 	Vector_destroy(&opt_xattr_rinclude);
 	Vector_destroy(&opt_xform);
+	Vector_destroy(&opt_ref_files);
 }
 
 static int
-create_add_from_list(FiesWriter *fies, const char *listfile, bool xforming)
+create_add_from_list(FiesWriter *fies, const char *listfile, bool xforming,
+                     bool as_ref)
 {
 	int fd = open(listfile, O_RDONLY);
 	if (fd < 0) {
@@ -682,7 +709,7 @@ create_add_from_list(FiesWriter *fies, const char *listfile, bool xforming)
 				if (xforming && len)
 					xform = buffer;
 				rc = do_create_add(fies, AT_FDCWD, from, from,
-				                   0, xform);
+				                   0, xform, as_ref);
 				if (rc < 0)
 					goto out;
 				rc = ERR_SKIPMSG; // reset error code
@@ -704,7 +731,7 @@ create_add_from_list(FiesWriter *fies, const char *listfile, bool xforming)
 			if (xforming && fill)
 				xform = buffer;
 			rc = do_create_add(fies, AT_FDCWD, from, from, 0,
-			                   xform);
+			                   xform, as_ref);
 			if (rc < 0)
 				goto out;
 			rc = ERR_SKIPMSG; // reset error code
@@ -745,9 +772,25 @@ fies_cli_create(int argc, char **argv)
 	int rc = 0;
 	const char *err;
 
+	const char **refpp;
+	Vector_foreach(&opt_ref_files, refpp) {
+		rc = create_add(fies, *refpp, true);
+		if (rc < 0)
+			goto out_errmsg;
+	}
+
 	from_file_t *fit;
+	Vector_foreach(&opt_ref_files_from_list, fit) {
+		rc = create_add_from_list(fies, fit->file, fit->transforming,
+		                          true);
+		if (rc == ERR_SKIPMSG)
+			goto out;
+		if (rc < 0)
+			goto out_errmsg;
+	}
 	Vector_foreach(&opt_files_from_list, fit) {
-		rc = create_add_from_list(fies, fit->file, fit->transforming);
+		rc = create_add_from_list(fies, fit->file, fit->transforming,
+		                          false);
 		if (rc == ERR_SKIPMSG)
 			goto out;
 		if (rc < 0)
@@ -755,7 +798,7 @@ fies_cli_create(int argc, char **argv)
 	}
 
 	for (int i = 0; i != argc; ++i) {
-		rc = create_add(fies, argv[i]);
+		rc = create_add(fies, argv[i], false);
 		if (rc < 0)
 			goto out_errmsg;
 	}
@@ -932,6 +975,9 @@ main(int argc, char **argv)
 	Vector_set_destructor(&opt_xform, (Vector_dtor*)RexReplace_pdestroy);
 
 	Vector_init_type(&opt_files_from_list, from_file_t);
+	Vector_init_type(&opt_ref_files_from_list, from_file_t);
+
+	Vector_init_type(&opt_ref_files, const char*);
 
 	atexit(main_cleanup);
 
@@ -956,6 +1002,15 @@ main(int argc, char **argv)
 		int consumed = parse_compat_option(argc, argv);
 		argc -= consumed;
 		argv += consumed;
+	}
+
+	if (opt_mode != 'c') {
+		if (!Vector_empty(&opt_ref_files)) {
+			fprintf(stderr,
+			        "fies: --ref-file option can only be used "
+			        " when creating an archive\n");
+			return 1;
+		}
 	}
 
 	int rc;

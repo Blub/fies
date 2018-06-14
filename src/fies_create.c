@@ -123,7 +123,8 @@ do_create_add(struct FiesWriter *fies,
               const char *basepart,
               const char *fullpath,
               dev_t dev,
-              const char *xformed)
+              const char *xformed,
+              bool as_ref)
 {
 	const bool is_recursion = (dirfd != AT_FDCWD);
 	int retval = -EINVAL;
@@ -170,6 +171,12 @@ do_create_add(struct FiesWriter *fies,
 		goto out;
 	}
 	unsigned long filetype = (file->mode & FIES_M_FMT);
+
+	if (as_ref && filetype != FIES_M_FREG) {
+		showerr("fies: non regular file used as reference\n");
+		retval = -EBADF;
+		goto out;
+	}
 
 	struct stat stbuf;
 	int fd = FiesFile_get_os_fd(file);
@@ -252,7 +259,7 @@ do_create_add(struct FiesWriter *fies,
 				goto out;
 			}
 			retval = do_create_add(fies, fd, entry->d_name,
-			                         inpath, dev, NULL);
+			                         inpath, dev, NULL, false);
 			free(inpath);
 			if (retval < 0)
 				break;
@@ -267,9 +274,9 @@ out:
 }
 
 int
-create_add(FiesWriter *fies, const char *arg)
+create_add(FiesWriter *fies, const char *arg, bool as_ref)
 {
-	return do_create_add(fies, AT_FDCWD, arg, arg, 0, NULL);
+	return do_create_add(fies, AT_FDCWD, arg, arg, 0, NULL, as_ref);
 }
 
 static ssize_t

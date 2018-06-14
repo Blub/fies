@@ -189,6 +189,26 @@
     read or extract as with the *-T* option, the second entry is the name to
     use for the destination.
 
+\opt --ref-file= FILE
+\short include FILE as a reference file
+    The archive will contain an entry for the specified file (with all
+    transformations applied as for any other files), but will not contain its
+    contents. Its physical mapping will be read and used for clone operations.
+    This is useful for incremental file based streams.
+
+\opt --ref-files-from= FILE
+\short Read a list of reference files from FILE.
+    Add files from a list, like with `--files-from`, but treat them as if they
+    had been added via `--ref-file`.
+\opt --xforming-ref-files-from= FILE
+\only cli
+\short Read a list of transformed reference files from FILE.
+\opt --xforming-ref-files-from=, --transforming-ref-files-from= FILE
+\only doc
+\short Read a list of transformed reference files from FILE.
+    Like `--xforming-files-from`, but additionally files are added as if they
+    had been added via `--ref-file`.
+
 \opt --null
 \only cli
 \short Files for the files-from options are null-terminated.
