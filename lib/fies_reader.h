@@ -46,7 +46,7 @@ typedef struct FiesReader {
 	Map files; // { fies_id => FiesReader_File }
 
 	bool eof;
-	int errc;
+	int errc; // negative errno code
 	const char *errstr;
 	jmp_buf jmpbuf;
 	size_t warnings;

@@ -2,6 +2,7 @@
 
 #include "cppfile.h"
 
+#if 0
 static ssize_t
 vf_pread(struct FiesFile *handle,
          void *buffer,
@@ -11,6 +12,7 @@ vf_pread(struct FiesFile *handle,
 	auto self = reinter<File*>(handle->opaque);
 	return self->pread(buffer, length, offset);
 }
+#endif
 
 static ssize_t
 vf_preadp(struct FiesFile *handle,
@@ -94,7 +96,7 @@ vf_free_xattr(struct FiesFile *handle, const char *buffer)
 
 const struct FiesFile_Funcs
 virt_file_funcs = {
-	vf_pread,
+	nullptr, //vf_pread,
 	vf_preadp,
 	vf_close,
 	vf_next_extents,

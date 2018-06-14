@@ -100,8 +100,9 @@ TestFile::markLogical(fies_pos offset, size_t length)
 }
 
 ssize_t
-TestFile::pread(void *buffer, size_t length, fies_pos offset)
+TestFile::preadp(void *buffer, size_t length, fies_pos offset, fies_pos phys)
 {
+	(void)phys;
 	markLogical(offset, length);
 
 	auto data = reinter<fies_pos*>(buffer);

@@ -29,7 +29,10 @@ struct TestFile : File {
 	                    fies_pos logical_start,
 	                    FiesFile_Extent *buffer,
 	                    size_t buffer_elements) override;
-	ssize_t pread(void *buffer, size_t length, fies_pos offset) override;
+	ssize_t preadp(void *buffer,
+	               size_t length,
+	               fies_pos offset,
+	               fies_pos physical) override;
 
 	size_t findExtent(fies_pos offset) const;
 	void markLogical(fies_pos offset, size_t length);

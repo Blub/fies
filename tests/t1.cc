@@ -30,7 +30,7 @@ fieserr(FiesWriter *fies, int rc)
 		return;
 	const char *msg = FiesWriter_getError(fies);
 	if (!msg)
-		msg = strerror(rc);
+		msg = strerror(-rc);
 	err("fies error: %s\n", msg);
 }
 

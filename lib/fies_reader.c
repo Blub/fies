@@ -972,8 +972,10 @@ FiesReader_doReadHeader(FiesReader *self)
 extern int
 FiesReader_iterate(FiesReader *self)
 {
-	if (self->errc) return self->errc;
-	if (self->eof) return 0;
+	if (self->errc)
+		return self->errc;
+	if (self->eof)
+		return 0;
 
 	int rc = -EFAULT;
 
@@ -1044,7 +1046,7 @@ FiesReader_iterate(FiesReader *self)
 		else if (!self->errstr)
 			self->errstr = strerror(-self->errc);
 		//fprintf(stderr, "fies exception: %s\n", self->errstr);
-		return -self->errc;
+		return self->errc;
 	}
 
 	return rc < 0 ? rc : 1;
@@ -1074,7 +1076,7 @@ FiesReader_getError(const FiesReader *self)
 	if (self->errstr)
 		return self->errstr;
 	if (self->errc)
-		return strerror(self->errc);
+		return strerror(-self->errc);
 	return NULL;
 }
 
