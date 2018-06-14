@@ -29,7 +29,7 @@ cppwriter_funcs = {
 	vf_finalize
 };
 
-#pragma clang diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 
 Writer::Writer()
 	: Writer(nullptr)

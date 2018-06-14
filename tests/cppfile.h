@@ -9,6 +9,10 @@ struct File {
 	constexpr File(const File&) = default;
 	virtual ~File();
 	virtual ssize_t pread(void *buffer, size_t length, fies_pos offset);
+	virtual ssize_t preadp(void *buffer,
+	                       size_t length,
+	                       fies_pos offset,
+	                       fies_pos physical);
 	virtual void    close();
 	virtual ssize_t nextExtents(FiesWriter*,
 	                            fies_pos logical_start,

@@ -36,6 +36,15 @@ substs.set('INCLUDEDIR', includedir)
 cc = meson.get_compiler('c')
 pkgconfig = import('pkgconfig')
 
+use_cxx = false
+cxx = []
+want_tests = get_option('tests')
+if want_tests != 'false'
+	add_languages('cpp')
+	cxx = meson.get_compiler('cpp')
+	use_cxx = true
+endif
+
 foreach arg : [
     '-Wall',
     '-Wextra',
@@ -44,6 +53,9 @@ foreach arg : [
     ]
 	if cc.has_argument(arg)
 		add_project_arguments(arg, language : 'c')
+	endif
+	if use_cxx and cxx.has_argument(arg)
+		add_project_arguments(arg, language : 'cpp')
 	endif
 endforeach
 
@@ -56,6 +68,9 @@ foreach arg : [
     ]
 	if cc.has_argument('-W' + arg)
 		add_project_arguments('-Wno-' + arg, language : 'c')
+	endif
+	if use_cxx and cxx.has_argument('-W' + arg)
+		add_project_arguments('-Wno-' + arg, language : 'cpp')
 	endif
 endforeach
 
@@ -89,14 +104,6 @@ else
 	conf.set('READLINKAT_EMPTY_PATH', false)
 endif
 #  /* #undef CONFIG_BIG_ENDIAN */
-
-want_tests = get_option('tests')
-if want_tests != 'false'
-	cxx = find_program('c++', required : want_tests == 'true')
-	if cxx.found()
-		add_languages('cpp')
-	endif
-endif
 
 want_dmthin = get_option('dmthin')
 want_rbd = get_option('rbd')
@@ -171,3 +178,4 @@ subdir('include')
 subdir('lib')
 subdir('libfies-dmthin')
 subdir('src')
+subdir('tests')

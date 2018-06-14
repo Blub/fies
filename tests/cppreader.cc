@@ -193,9 +193,10 @@ cppreader_funcs = {
 	vf_snapshots,
 	vf_close,
 	vf_finalize,
+	nullptr, // dbg_packet
 };
 
-#pragma clang diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 
 Reader::Reader()
 	: self_(nullptr)

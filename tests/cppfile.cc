@@ -3,10 +3,24 @@
 #include "cppfile.h"
 
 static ssize_t
-vf_pread(struct FiesFile *handle, void *buffer, size_t length, fies_pos offset)
+vf_pread(struct FiesFile *handle,
+         void *buffer,
+         size_t length,
+         fies_pos offset)
 {
 	auto self = reinter<File*>(handle->opaque);
 	return self->pread(buffer, length, offset);
+}
+
+static ssize_t
+vf_preadp(struct FiesFile *handle,
+          void *buffer,
+          size_t length,
+          fies_pos offset,
+          fies_pos physical)
+{
+	auto self = reinter<File*>(handle->opaque);
+	return self->preadp(buffer, length, offset, physical);
 }
 
 static void
@@ -81,6 +95,7 @@ vf_free_xattr(struct FiesFile *handle, const char *buffer)
 const struct FiesFile_Funcs
 virt_file_funcs = {
 	vf_pread,
+	vf_preadp,
 	vf_close,
 	vf_next_extents,
 	vf_verify_extent,
@@ -92,13 +107,19 @@ virt_file_funcs = {
 	vf_free_xattr
 };
 
-#pragma clang diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 
 File::~File() {
 }
 
 ssize_t
 File::pread(void *buffer, size_t length, fies_pos offset)
+{
+	return -ENOTSUP;
+}
+
+ssize_t
+File::preadp(void *buffer, size_t length, fies_pos offset, fies_pos physical)
 {
 	return -ENOTSUP;
 }

@@ -10,6 +10,7 @@
 #pragma clang diagnostic ignored "-Wunused-function"
 #pragma clang diagnostic ignored "-Wunused-variable"
 
+#if 0
 static void
 fieserr(FiesReader *fies, int rc)
 {
@@ -20,6 +21,7 @@ fieserr(FiesReader *fies, int rc)
 		msg = strerror(rc);
 	err("fies error: %s\n", msg);
 }
+#endif
 
 static void
 fieserr(FiesWriter *fies, int rc)
