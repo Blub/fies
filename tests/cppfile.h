@@ -41,7 +41,7 @@ static inline newFiesFile(File *self,
 {
 	return uniq<FiesFile, FiesFileDeleter>{
 		FiesFile_new(reinter<void*>(self), &virt_file_funcs,
-		             name, NULL, size, mode, device)
+		             name, nullptr, size, mode, device)
 	};
 }
 

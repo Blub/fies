@@ -7,6 +7,8 @@
 
 extern const FiesWriter_Funcs cppwriter_funcs;
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wpadded"
 struct Writer {
 	Writer();
 	constexpr Writer(nullptr_t);
@@ -27,6 +29,7 @@ struct Writer {
 	FiesWriter *self_;
 	bool finalized_ = false;
 };
+#pragma clang diagnostic pop
 
 inline constexpr
 Writer::Writer(nullptr_t)

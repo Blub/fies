@@ -40,6 +40,7 @@ foreach arg : [
     '-Wall',
     '-Wextra',
     '-Weverything',
+    '-Werror',
     ]
 	if cc.has_argument(arg)
 		add_project_arguments(arg, language : 'c')
@@ -57,6 +58,16 @@ foreach arg : [
 		add_project_arguments('-Wno-' + arg, language : 'c')
 	endif
 endforeach
+
+if use_cxx
+	foreach arg : [
+	    'weak-vtables',
+	]
+		if cxx.has_argument('-W' + arg)
+			add_project_arguments('-Wno-' + arg, language : 'cpp')
+		endif
+	endforeach
+endif
 
 if not cc.has_header_symbol('sys/types.h', 'major')
 	if cc.has_header_symbol('sys/mkdev.h', 'major')

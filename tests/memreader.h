@@ -5,6 +5,8 @@
 #include "cppreader.h"
 #include "checkfile.h"
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wpadded"
 struct MemReader : Reader {
 	MemReader() = delete;
 	MemReader(const uint8_t *data, size_t length);
@@ -40,6 +42,7 @@ struct MemReader : Reader {
 
 	map<string, uniq<CheckFile>> expected_files_;
 };
+#pragma clang diagnostic pop
 
 inline size_t
 MemReader::remaining() const

@@ -13,6 +13,8 @@ enum class DataClass {
 	PosData
 };
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wpadded"
 struct DataRange {
 	fies_pos  pos;
 	fies_sz   len;
@@ -48,6 +50,7 @@ struct CheckFile {
 	uint32_t mode_;
 	vector<DataRange> ranges_;
 };
+#pragma clang diagnostic pop
 
 inline const char*
 CheckFile::c_name() const

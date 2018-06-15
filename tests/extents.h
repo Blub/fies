@@ -27,6 +27,8 @@ operator""_exfl(const char *txt, unsigned long len)
 	return mkexfl(txt, 0, len);
 }
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wpadded"
 struct PhyExt {
 	PhyExt() = delete;
 
@@ -45,6 +47,7 @@ struct PhyExt {
 	fies_sz  len;
 	uint32_t flags;
 };
+#pragma clang diagnostic pop
 
 inline constexpr FiesFile_Extent
 extent(fies_pos log, fies_pos phy, fies_sz len, uint32_t flags, fies_pos dev=0)

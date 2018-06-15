@@ -7,6 +7,8 @@
 
 extern const FiesReader_Funcs cppreader_funcs;
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wpadded"
 struct Reader {
 	Reader();
 	virtual ~Reader();
@@ -68,6 +70,7 @@ struct Reader {
 	FiesReader *self_;
 	int meta_err_ = ENOTSUP;
 };
+#pragma clang diagnostic pop
 
 inline
 Reader::operator bool() const

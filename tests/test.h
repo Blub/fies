@@ -38,20 +38,29 @@ typedef struct FiesFile_Extent FiesFile_Extent;
 typedef struct fies_time fies_time;
 
 struct TestException : std::exception {
-	TestException(string msg) : msg_(move(msg)) {
-	}
+	TestException(string msg);
 
-	const char *what() const noexcept override {
-		return msg_.c_str();
-	}
+	const char *what() const noexcept override;
 
+ private:
 	string msg_;
 };
 
+inline
+TestException::TestException(string msg)
+	: msg_(move(msg))
+{
+}
+
 struct FinalizedException : TestException {
-	FinalizedException() : TestException("already finalized") {
-	}
+	FinalizedException();
 };
+
+inline
+FinalizedException::FinalizedException()
+	: TestException("already finalized")
+{
+}
 
 // std::binary_search doesn't return an iterator...
 template<typename ITER, typename T, typename CMP>
