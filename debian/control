@@ -2,8 +2,7 @@ Source: fies
 Section: misc
 Priority: optional
 Maintainer: Wolfgang Bumiller <wry.git@bumiller.com>
-Build-Depends: libtool,
- libtool-bin,
+Build-Depends: meson,
  libglib2.0-dev,
  libdevmapper-dev,
  librbd-dev,

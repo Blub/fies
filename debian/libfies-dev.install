@@ -1,4 +1,3 @@
 /usr/include/fies.h
 /usr/lib/x86_64-linux-gnu/libfies*.so
-/usr/lib/x86_64-linux-gnu/libfies*.a
 /usr/lib/x86_64-linux-gnu/pkgconfig/*.pc

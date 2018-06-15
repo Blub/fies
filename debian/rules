@@ -5,14 +5,21 @@ DPKG_EXPORT_BUILDFLAGS = 1
 include /usr/share/dpkg/default.mk
 
 %:
-	dh $@
+	dh $@ --builddirectory=build
+
+# Debian stretch has no dh-meson yet...
 
 override_dh_auto_configure:
-	./configure \
-		--prefix=/usr \
-		--libdir=/usr/lib/x86_64-linux-gnu \
-		--enable-shared \
-		--enable-dmthin \
-		--enable-rbd \
-		--enable-zvol \
-		--enable-doc
+	meson --buildtype=plain --prefix=/usr build
+	meson configure build \
+	 -Ddoc=true \
+	 -Dtests=true \
+	 -Ddmthin=true \
+	 -Drbd=true \
+	 -Dzvol=true
+
+override_dh_auto_build:
+	ninja -C build
+
+override_dh_auto_install:
+	DESTDIR=$(PWD)/debian/tmp ninja -C build install
