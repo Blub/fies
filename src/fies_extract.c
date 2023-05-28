@@ -327,9 +327,9 @@ do_hardlink(void *opaque, void *psrc, const char *in_filename)
 	int ret;
 	if (unlink(filename) != 0 && errno != ENOENT) {
 		ret = -errno;
-		free(filename);
 		showerr("fies: failed to unlink %s: %s\n",
 		        filename, strerror(-ret));
+		free(filename);
 		return ret;
 	}
 	make_dir_tree(filename);
