@@ -1,6 +1,6 @@
 perl = find_program('perl')
 
-doc_path = join_paths(meson.source_root(), 'doc')
+doc_path = meson.current_source_dir()
 
 section_pl = join_paths(doc_path, 'section.pl')
 section_fullcmd = [ '-I'+doc_path, '--', section_pl ]
