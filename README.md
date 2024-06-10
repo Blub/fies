@@ -37,20 +37,10 @@ Tools
 Installation
 ------------
 
-The usual procedure, with the usual parameters and variables.
+See `meson_options.txt` for options. Build with meson.
 
-See `./configure --help` for detailed information about the various optional
-parts of the project.
-
-The general procedure is:
-
-    ./configure --prefix=/usr
-    make
-
-and either:
-
-    make install
-
-or, when building a package using a staging directory:
-
-    make DESTDIR=$pkgdir install
+```
+./fies $ meson setup build
+./fies $ cd ./build
+./fies/build $ meson compile
+```
