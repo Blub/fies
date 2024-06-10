@@ -6,7 +6,6 @@ Build-Depends: meson,
  libglib2.0-dev,
  libdevmapper-dev,
  librbd-dev,
- libzfs-dev | libzfslinux-dev,
  python-docutils | python3-docutils
 
 Package: libfies0

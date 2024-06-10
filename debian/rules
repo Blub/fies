@@ -16,7 +16,7 @@ override_dh_auto_configure:
 	 -Dtests=true \
 	 -Ddmthin=true \
 	 -Drbd=true \
-	 -Dzvol=true
+	 -Dzvol=false
 
 override_dh_auto_build:
 	ninja -C build
