@@ -35,10 +35,3 @@ Section: utils
 Depends: ${shlibs:Depends}, ${misc:Depends}, libfies0 (= ${binary:Version})
 Description: Command line tool to create fiestreams from rbd volumes
  a command line tool to create and fiestream archives from ceph rbd volumes.
-
-Package: fies-zvol
-Architecture: any
-Section: utils
-Depends: ${shlibs:Depends}, ${misc:Depends}, libfies0 (= ${binary:Version})
-Description: Command line tool to create fiestreams from zvols
- a command line tool to create and fiestream archives from ZFS zvols.
