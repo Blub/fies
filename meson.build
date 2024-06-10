@@ -2,7 +2,7 @@ project(
 	'fies', 'c',
 	version : '0.0.6',
 	default_options : [
-		'c_std=c11',
+		'c_std=c17',
 		'prefix=/usr',
 	],
 	meson_version : '>= 0.40',
