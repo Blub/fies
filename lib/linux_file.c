@@ -472,7 +472,7 @@ FiesFile_fdopenfull(int fd,
 	self->fm.fm_length = (size_t)stbuf->st_size;
 	self->fm.fm_flags = FIEMAP_FLAG_SYNC;
 	self->fm.fm_mapped_extents = 0;
-	self->fm.fm_extent_count = datasize / sizeof *self;
+	self->fm.fm_extent_count = datasize / sizeof(self->fm.fm_extents[0]);
 
 	FiesFile *file = FiesFile_new2(self, &fies_os_file_funcs,
 	                               filename, filenamelen,
