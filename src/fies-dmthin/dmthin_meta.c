@@ -19,7 +19,7 @@
 #include "../util.h"
 #include "fies_dmthin.h"
 
-const void*
+static const void*
 ThinMeta_getBlock(void *opaque, size_t block_number)
 {
 	ThinMeta *self = opaque;
@@ -39,11 +39,14 @@ ThinMeta_getBlock(void *opaque, size_t block_number)
 	return block;
 }
 
-void
+static void
 ThinMeta_putBlock(void *opaque, const void *block)
 {
 	(void)opaque;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-qual"
 	free((void*)block);
+#pragma clang diagnostic pop
 }
 
 ThinMeta*

@@ -5,12 +5,7 @@
 #include "../../include/fies/dmthin.h"
 
 #pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wall"
-#pragma GCC diagnostic ignored "-Wextra"
-#pragma GCC diagnostic ignored "-Wreserved-id-macro"
-#pragma GCC diagnostic ignored "-Wc++98-compat-pedantic"
-#pragma GCC diagnostic ignored "-Wdocumentation"
-#pragma GCC diagnostic ignored "-Wdocumentation-unknown-command"
+#pragma GCC diagnostic ignored "-Weverything"
 #include <glib.h>
 #pragma GCC diagnostic pop
 

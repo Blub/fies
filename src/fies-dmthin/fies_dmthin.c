@@ -655,7 +655,7 @@ cleanupDevices()
 	}
 }
 
-static void
+static _Noreturn void
 handleSignal()
 {
 	fprintf(stderr, "fies-dmthin: caught signal\n");

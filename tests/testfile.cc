@@ -1,6 +1,14 @@
 #include <stdio.h>
 #include "testfile.h"
 
+TestExtent::TestExtent(FiesFile_Extent extent,
+                       size_t query_expected,
+                       size_t read_expected)
+	: extent_(extent)
+	, query_expected_(query_expected)
+	, read_expected_(read_expected)
+{}
+
 TestFile::TestFile(string name,
                    fies_pos size,
                    std::initializer_list<TestExtent> extents)

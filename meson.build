@@ -65,6 +65,7 @@ foreach arg : [
     'c++98-compat',
     'c++98-compat-pedantic',
     'disabled-macro-expansion',
+    'declaration-after-statement',
     ]
 	if cc.has_argument('-W' + arg)
 		add_project_arguments('-Wno-' + arg, language : 'c')

@@ -10,12 +10,7 @@
 #include <sys/ioctl.h>
 
 #pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wall"
-#pragma GCC diagnostic ignored "-Wextra"
-#pragma GCC diagnostic ignored "-Wreserved-id-macro"
-#pragma GCC diagnostic ignored "-Wc++98-compat-pedantic"
-#pragma GCC diagnostic ignored "-Wdocumentation"
-#pragma GCC diagnostic ignored "-Wdocumentation-unknown-command"
+#pragma GCC diagnostic ignored "-Weverything"
 #include <glib.h>
 #pragma GCC diagnostic pop
 
@@ -521,7 +516,7 @@ do_cephrbd_add(FiesWriter *fies,
 
 	size_t namelen = strlen(image->name);
 	size_t snaplen = snapshot ? 1+strlen(snapshot) : 0;
-	char *fullname = alloca(namelen + snaplen + 1);
+	FIES_FREE_CHARPTR char* fullname = malloc(namelen + snaplen + 1);
 	memcpy(fullname, image->name, namelen);
 	if (snapshot) {
 		fullname[namelen] = '@';

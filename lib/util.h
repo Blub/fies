@@ -25,7 +25,11 @@
 #elif __GNUC__ >= 7
 #  define FIES_FALLTHROUGH __attribute__((fallthrough))
 #elif defined(__clang__)
+# if __clang_major__ >= 10
+#  define FIES_FALLTHROUGH __attribute__((fallthrough))
+# else
 #  define FIES_FALLTHROUGH
+# endif
 #else
 #  define FIES_FALLTHROUGH
 #endif
@@ -130,5 +134,8 @@ static inline void     le_broken(void) {}
 #endif
 
 #define SwapLE(X) do { (X) = FIES_LE((X)); } while (0)
+
+static inline void free_char(char** ptr) { free(*ptr); *ptr = NULL; }
+#define FIES_FREE_CHARPTR __attribute__((cleanup(free_char)))
 
 #endif

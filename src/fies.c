@@ -490,7 +490,7 @@ display_time(char *buf, size_t bufsz, const struct fies_time *tm)
 		if (!localtime_r(&secs, &timedata))
 			return 0;
 		return strftime(buf, bufsz, "%c", &timedata);
-	};
+	}
 #pragma clang diagnostic pop
 }
 

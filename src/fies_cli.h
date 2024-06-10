@@ -20,6 +20,7 @@ extern VectorOf(RexReplace*) opt_xform;
 extern bool                  opt_incremental;
 extern clone_mode_t          opt_clone;
 extern VectorOf(from_file_t) opt_files_from_list;
+extern VectorOf(from_file_t) opt_ref_files_from_list;
 
 extern uint32_t              fies_flags;
 

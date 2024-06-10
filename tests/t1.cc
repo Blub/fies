@@ -135,6 +135,7 @@ t_filelist_1()
 		{}
 
 		int snapshots (void *fh, const char **snapshots, size_t count)
+			override
 		{
 			(void)fh;
 			ASSERT(data.files.size() == count);

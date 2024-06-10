@@ -8,6 +8,10 @@
 struct TestExtent {
 	TestExtent() = delete;
 
+	TestExtent(FiesFile_Extent extent,
+	           size_t query_expected,
+	           size_t read_expected);
+
 	FiesFile_Extent extent_;
 	size_t query_expected_;
 	size_t read_expected_;
